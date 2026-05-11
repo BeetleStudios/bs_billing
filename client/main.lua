@@ -330,6 +330,9 @@ RegisterNetEvent('bs_billing:client:open', function()
     openMainMenu()
 end)
 
+--- Open the ox_lib billing context menu (Outstanding / History / Create).
+exports('OpenMainMenu', openMainMenu)
+
 if Config.EnableBillingCommand ~= false then
     RegisterCommand(Config.Command or 'billing', function()
         openMainMenu()
