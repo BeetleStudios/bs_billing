@@ -15,7 +15,7 @@ A simple cross-framework billing resource for FiveM. Players and jobs can issue 
 - **Exports** — Create, query, pay, cancel, and mark bills from other resources
 - **Locales** — English, Spanish, Portuguese (`locales/*.json`)
 
-Optional companion: **bs_billing_phone** (lb-phone app)
+Optional companion: **[bs_billing_phone](https://beetle-studios.tebex.io/package/7445398)** (lb-phone app)
 
 ## Dependencies
 
