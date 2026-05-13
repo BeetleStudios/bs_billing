@@ -8,7 +8,7 @@ A simple cross-framework billing resource for FiveM. Players and jobs can issue 
 - **History** — Past bills (paid / cancelled) with pagination support via exports
 - **Personal bills** — Optional payout to the issuer when the bill is paid (if issuer is online)
 - **Business bills** — Payment can be split: optional **commission** (per job, 0–1) to the issuing player’s bank (online or offline when the framework supports it), remainder to the **society** account; if commission cannot be credited to the issuer, it falls back to society
-- **Framework support** — Qbox (`qbx`), QBCore (`qb`), or ESX (`esx`)
+- **Framework support** — Qbox, QBCore, or ESX
 - **Society banking** — Renewed-Banking, qb-banking, okokBanking, fd_banking, tgiann-bank, esx_addonaccount
 - **Exports** — Create, query, pay, cancel, and mark bills from other resources
 - **Locales** — English, Spanish, Portuguese (`locales/*.json`)
@@ -36,7 +36,7 @@ Optional companion: **bs_billing_phone** (lb-phone app)
 
 - **In-game menu**: If `Config.EnableBillingCommand` is enabled, players use `/billing` (or `Config.Command`) to open the ox_lib menu: outstanding bills, history, and create bill flow
 - **Recipient**: Only the billed player can use **Pay** in the default flow unless third-party payment is enabled in config
-- **Integration**: Other resources should use **exports** (server-side) to create or manage bills
+- **Integration**: Other resources should use **server exports** to create or manage bills; use the **client export** below if you want to open the ox_lib menu from your own UI or keybind
 
 ## Configuration
 
@@ -59,7 +59,9 @@ Edit `config.lua`:
 
 ## Exports
 
-All exports are **server-side**. Responses use `{ success = true, data = ... }` or `{ success = false, error = '...' }`.
+### Server
+
+Responses use `{ success = true, data = ... }` or `{ success = false, error = '...' }`.
 
 - `exports['bs_billing']:CreateBill(data)` — Full control; `data` includes `recipientId`, `recipientName`, `issuerId`, `issuerName`, `issuerType` (`'person'` \| `'business'`), `issuerJob` (required for business), `amount`, `reason`
 - `exports['bs_billing']:CreatePlayerBill(targetSource, amount, reason, options)` — Personal bill; `options` may include `issuerId`, `issuerName`
@@ -72,3 +74,7 @@ All exports are **server-side**. Responses use `{ success = true, data = ... }` 
 - `exports['bs_billing']:PayBill(source, billId)`
 - `exports['bs_billing']:CancelBill(billId, actorSource)`
 - `exports['bs_billing']:MarkBillPaid(billId, metadata)` — Admin/integration; `metadata` may include `paidById`, `paymentSource`
+
+### Client
+
+- `exports['bs_billing']:OpenMainMenu()` — Opens the ox_lib billing menu (Outstanding, History, Create), same as the `/billing` command when enabled. Call from client scripts only (for example a radial menu, target, or tablet resource).
