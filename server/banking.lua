@@ -60,6 +60,20 @@ function BillingBanking.GetJobMoney(jobName)
             return exports['tgiann-bank']:GetJobAccountBalance(jobName)
         end)
         return (ok and balance) and balance or 0
+    elseif banking == 'tgg' and GetResourceState('tgg-banking') == 'started' then
+        local ok, money = pcall(function()
+            return exports['tgg-banking']:GetSocietyAccountMoney(jobName)
+        end)
+        if ok and type(money) == 'number' then
+            return money
+        end
+    elseif banking == 'wasabi' and GetResourceState('wasabi_banking') == 'started' then
+        local ok, balance = pcall(function()
+            return exports['wasabi_banking']:GetAccountBalance(jobName, 'society')
+        end)
+        if ok and type(balance) == 'number' then
+            return balance
+        end
     end
 
     return 0
@@ -98,6 +112,16 @@ function BillingBanking.AddJobMoney(jobName, amount)
         return pcall(function()
             exports['tgiann-bank']:AddJobMoney(jobName, amount)
         end)
+    elseif banking == 'tgg' and GetResourceState('tgg-banking') == 'started' then
+        local ok, result = pcall(function()
+            return exports['tgg-banking']:AddSocietyMoney(jobName, amount)
+        end)
+        return ok and result == true
+    elseif banking == 'wasabi' and GetResourceState('wasabi_banking') == 'started' then
+        local ok, result = pcall(function()
+            return exports['wasabi_banking']:AddMoney('society', jobName, amount)
+        end)
+        return ok and result == true
     end
 
     return false
@@ -136,6 +160,16 @@ function BillingBanking.RemoveJobMoney(jobName, amount)
         return pcall(function()
             exports['tgiann-bank']:RemoveJobMoney(jobName, amount)
         end)
+    elseif banking == 'tgg' and GetResourceState('tgg-banking') == 'started' then
+        local ok, result = pcall(function()
+            return exports['tgg-banking']:RemoveSocietyMoney(jobName, amount)
+        end)
+        return ok and result == true
+    elseif banking == 'wasabi' and GetResourceState('wasabi_banking') == 'started' then
+        local ok, result = pcall(function()
+            return exports['wasabi_banking']:RemoveMoney('society', jobName, amount)
+        end)
+        return ok and result == true
     end
 
     return false
