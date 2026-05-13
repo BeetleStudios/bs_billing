@@ -2,6 +2,8 @@
 
 A simple cross-framework billing resource for FiveM. Players and jobs can issue **personal** or **business** bills; recipients see **outstanding** balances until they pay from their **bank account**. Business payments route to your society account via your banking script. The menu is **ox_lib** but you can build your own NUI if you'd like.
 
+**[Preview](https://youtu.be/2rpbGGr4uh4)**
+
 ## Features
 
 - **Outstanding bills** — Persist until paid or cancelled
@@ -9,7 +11,7 @@ A simple cross-framework billing resource for FiveM. Players and jobs can issue 
 - **Personal bills** — Optional payout to the issuer when the bill is paid (if issuer is online)
 - **Business bills** — Payment can be split: optional **commission** (per job, 0–1) to the issuing player’s bank (online or offline when the framework supports it), remainder to the **society** account; if commission cannot be credited to the issuer, it falls back to society
 - **Framework support** — Qbox, QBCore, or ESX
-- **Society banking** — Renewed-Banking, qb-banking, okokBanking, fd_banking, tgiann-bank, esx_addonaccount, [wasabi_banking](https://docs.wasabiscripts.com/wasabi-scripts/core-ui-series/wasabi_banking/exports), [tgg-banking](https://www.teamsgg.dev/docs/paid-scripts/banking/exports/server-side) (TeamsGG)
+- **Society banking** — Renewed-Banking, qb-banking, okokBanking, fd_banking, tgiann-bank, esx_addonaccount, wasabi_banking, tgg-banking
 - **Exports** — Create, query, pay, cancel, and mark bills from other resources
 - **Locales** — English, Spanish, Portuguese (`locales/*.json`)
 
