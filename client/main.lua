@@ -47,6 +47,10 @@ local function requestHistory(limit, offset)
     return lib.callback.await('bs_billing:getHistory', false, limit, offset)
 end
 
+local function requestIssuedHistory(limit, offset)
+    return lib.callback.await('bs_billing:getIssuedHistory', false, limit, offset)
+end
+
 local function payBill(bill)
     local confirm = lib.alertDialog({
         header = L('confirm_pay_title'),
@@ -118,8 +122,16 @@ local function getNearbyServerIdsSorted()
     return ids
 end
 
-local function openHistoryMenu()
-    local result = requestHistory(100, 0)
+local function getBillRecipientLabel(bill)
+    local name = bill and bill.recipient_name_snapshot
+    if name and tostring(name) ~= '' then
+        return tostring(name)
+    end
+    return 'Unknown'
+end
+
+local function openHistoryListView(mode)
+    local result = (mode == 'issued') and requestIssuedHistory(100, 0) or requestHistory(100, 0)
     if not result or not result.success then
         return notifyError(result and result.error or 'history fetch failed')
     end
@@ -132,11 +144,17 @@ local function openHistoryMenu()
     else
         for i = 1, #bills do
             local bill = bills[i]
+            local whoLine
+            if mode == 'issued' then
+                whoLine = L('bill_to', getBillRecipientLabel(bill), tostring(bill.reason or ''))
+            else
+                whoLine = L('bill_from', getBillIssuerLabel(bill), tostring(bill.reason or ''))
+            end
             options[#options + 1] = {
                 title = ('#%s - $%s'):format(bill.id, bill.amount),
                 description = ('[%s] %s | %s'):format(
                     tostring(bill.status),
-                    ('From: %s | %s'):format(getBillIssuerLabel(bill), tostring(bill.reason or '')),
+                    whoLine,
                     formatDateTime(getBillCreatedValue(bill))
                 ),
                 disabled = true
@@ -144,13 +162,43 @@ local function openHistoryMenu()
         end
     end
 
+    local title = mode == 'issued' and L('history_title_issued') or L('history_title_received')
+    local ctxId = mode == 'issued' and 'bs_billing_history_issued' or 'bs_billing_history_received'
+
     lib.registerContext({
-        id = 'bs_billing_history',
-        title = L('menu_history'),
-        menu = 'bs_billing_main',
+        id = ctxId,
+        title = title,
+        menu = 'bs_billing_history_menu',
         options = options
     })
-    lib.showContext('bs_billing_history')
+    lib.showContext(ctxId)
+end
+
+local function openHistoryMenu()
+    lib.registerContext({
+        id = 'bs_billing_history_menu',
+        title = L('menu_history'),
+        menu = 'bs_billing_main',
+        options = {
+            {
+                title = L('history_hub_received'),
+                description = L('history_hub_received_desc'),
+                arrow = true,
+                onSelect = function()
+                    openHistoryListView('received')
+                end
+            },
+            {
+                title = L('history_hub_issued'),
+                description = L('history_hub_issued_desc'),
+                arrow = true,
+                onSelect = function()
+                    openHistoryListView('issued')
+                end
+            }
+        }
+    })
+    lib.showContext('bs_billing_history_menu')
 end
 
 local function openCreateDialog()
@@ -208,10 +256,14 @@ local function openCreateDialog()
                 { value = 'business', label = L('create_type_business') }
             }
         },
-        { type = 'input', label = L('create_job'), required = false, default = context.currentJob or '' }
     })
 
     if not input then return end
+
+    local issuerType = tostring(input[5])
+    if issuerType == 'business' and (not context.currentJob or tostring(context.currentJob) == '') then
+        return notifyError(L('create_business_need_job'))
+    end
 
     local targetPick = input[1]
     local manualPick = targetPick == MANUAL_TARGET or tostring(targetPick) == MANUAL_TARGET
@@ -233,13 +285,9 @@ local function openCreateDialog()
         targetSource = targetSource,
         amount = tonumber(input[3]),
         reason = tostring(input[4]),
-        issuerType = tostring(input[5]),
-        issuerJob = tostring(input[6] or '')
+        issuerType = issuerType,
+        issuerJob = issuerType == 'business' and (context.currentJob or '') or '',
     }
-
-    if payload.issuerType == 'business' and payload.issuerJob == '' then
-        payload.issuerJob = context.currentJob
-    end
 
     local result = lib.callback.await('bs_billing:createBill', false, payload)
     if not result or not result.success then
@@ -338,3 +386,15 @@ if Config.EnableBillingCommand ~= false then
         openMainMenu()
     end, false)
 end
+
+RegisterNetEvent('bs_billing:client:newBillLbPhone', function(amount)
+    if GetResourceState('lb-phone') ~= 'started' then return end
+    amount = tonumber(amount) or 0
+    pcall(function()
+        exports['lb-phone']:SendNotification({
+            app = Config.LbPhoneBillAppIdentifier or 'Billing',
+            title = L('menu_title'),
+            content = L('notify_new_bill', tostring(amount)),
+        })
+    end)
+end)

@@ -1,6 +1,6 @@
-# bs_billing - FiveM Script
+# bs_billing - FiveM Billing/Invoice/Fine Script
 
-A simple cross-framework billing resource for FiveM. Players and jobs can issue **personal** or **business** bills; recipients see **outstanding** balances until they pay from **bank**. Business payments route to your society account via common banking scripts. The menu is **ox_lib** only (no NUI in this resource).
+A simple cross-framework billing resource for FiveM. Players and jobs can issue **personal** or **business** bills; recipients see **outstanding** balances until they pay from their **bank account**. Business payments route to your society account via your banking script. The menu is **ox_lib** but you can build your own NUI if you'd like.
 
 ## Features
 
@@ -13,7 +13,7 @@ A simple cross-framework billing resource for FiveM. Players and jobs can issue 
 - **Exports** — Create, query, pay, cancel, and mark bills from other resources
 - **Locales** — English, Spanish, Portuguese (`locales/*.json`)
 
-Optional companion: **bs_billing_laptop** (av_laptop app) for viewing Due / History and paying from the laptop UI.
+Optional companion: **bs_billing_phone** (lb-phone app)
 
 ## Dependencies
 
@@ -72,12 +72,3 @@ All exports are **server-side**. Responses use `{ success = true, data = ... }` 
 - `exports['bs_billing']:PayBill(source, billId)`
 - `exports['bs_billing']:CancelBill(billId, actorSource)`
 - `exports['bs_billing']:MarkBillPaid(billId, metadata)` — Admin/integration; `metadata` may include `paidById`, `paymentSource`
-
-### Example (server)
-
-```lua
-local res = exports['bs_billing']:CreateBusinessBill(targetSrc, 500, 'Repair', 'mechanic', {})
-if not res.success then
-    print(res.error)
-end
-```

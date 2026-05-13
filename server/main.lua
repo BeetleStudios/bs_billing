@@ -9,6 +9,16 @@ local function notify(source, key, kind, ...)
     })
 end
 
+--- In-game toast + optional lb-phone push (see Config.LbPhoneBillNotify).
+local function fireRecipientNewBillAlert(targetSource, amount)
+    if not targetSource or targetSource < 1 then return end
+    amount = tonumber(amount) or 0
+    notify(targetSource, 'notify_new_bill', 'inform', tostring(amount))
+    if Config.LbPhoneBillNotify ~= false then
+        TriggerClientEvent('bs_billing:client:newBillLbPhone', targetSource, amount)
+    end
+end
+
 local function makeResponse(ok, dataOrError)
     if ok then
         return { success = true, data = dataOrError }
@@ -82,7 +92,7 @@ local function createBillFromSource(source, payload)
 
     if created.success then
         notify(source, 'notify_created', 'success')
-        notify(targetSource, 'notify_new_bill', 'inform', tostring(created.data.amount))
+        fireRecipientNewBillAlert(targetSource, created.data.amount)
     end
 
     return created
@@ -107,6 +117,14 @@ lib.callback.register('bs_billing:getHistory', function(source, limit, offset)
         return makeResponse(false, 'player identifier missing')
     end
     return BillingService.GetHistoryByIdentifier(identifier, limit, offset)
+end)
+
+lib.callback.register('bs_billing:getIssuedHistory', function(source, limit, offset)
+    local identifier = BillingFramework.GetIdentifier(source)
+    if not identifier then
+        return makeResponse(false, 'player identifier missing')
+    end
+    return BillingService.GetIssuedHistoryByIdentifier(identifier, limit, offset)
 end)
 
 --- Resolve character display names for a list of server IDs (same order as input).
@@ -134,8 +152,22 @@ lib.callback.register('bs_billing:getContext', function(source)
         return makeResponse(false, 'player not found')
     end
     local job = BillingFramework.GetPlayerJob(player)
+    local jobName = job and job.name or nil
+    local jobLabel = nil
+    if job then
+        local jl = job.label
+        if type(jl) == 'string' and jl ~= '' then
+            jobLabel = jl
+        elseif jobName then
+            jobLabel = BillingFramework.GetJobLabel(jobName)
+        end
+    end
+    if (not jobLabel or jobLabel == '') and jobName then
+        jobLabel = jobName
+    end
     return makeResponse(true, {
-        currentJob = job and job.name or nil,
+        currentJob = jobName,
+        currentJobLabel = jobLabel,
         canCreatePersonal = Config.AllowPersonalBillByAnyone,
         canCreateBusinessCurrentJob = job and BillingFramework.CanCreateBusinessBill(source, job.name) or false
     })
@@ -195,7 +227,13 @@ end
 
 -- Exports
 exports('CreateBill', function(data)
-    return BillingService.CreateBill(data or {})
+    data = data or {}
+    local created = BillingService.CreateBill(data)
+    if created.success and data.recipientId and tostring(data.recipientId) ~= '' then
+        local src = BillingFramework.GetSourceByIdentifier(data.recipientId)
+        fireRecipientNewBillAlert(src, created.data.amount)
+    end
+    return created
 end)
 
 exports('CreatePlayerBill', function(targetSource, amount, reason, options)
@@ -209,7 +247,7 @@ exports('CreatePlayerBill', function(targetSource, amount, reason, options)
     if not recipientId then return makeResponse(false, 'target identifier missing') end
 
     local opts = options or {}
-    return BillingService.CreateBill({
+    local created = BillingService.CreateBill({
         recipientId = recipientId,
         recipientName = BillingFramework.GetPlayerName(targetPlayer),
         issuerId = opts.issuerId,
@@ -218,6 +256,10 @@ exports('CreatePlayerBill', function(targetSource, amount, reason, options)
         amount = amount,
         reason = reason
     })
+    if created.success then
+        fireRecipientNewBillAlert(targetSource, created.data.amount)
+    end
+    return created
 end)
 
 exports('CreateBusinessBill', function(targetSource, amount, reason, jobName, options)
@@ -233,7 +275,7 @@ exports('CreateBusinessBill', function(targetSource, amount, reason, jobName, op
 
     local opts = options or {}
     local jobLabel = BillingFramework.GetJobLabel(tostring(jobName))
-    return BillingService.CreateBill({
+    local created = BillingService.CreateBill({
         recipientId = recipientId,
         recipientName = BillingFramework.GetPlayerName(targetPlayer),
         issuerId = opts.issuerId,
@@ -243,6 +285,10 @@ exports('CreateBusinessBill', function(targetSource, amount, reason, jobName, op
         amount = amount,
         reason = reason
     })
+    if created.success then
+        fireRecipientNewBillAlert(targetSource, created.data.amount)
+    end
+    return created
 end)
 
 exports('GetOutstandingBillsBySource', function(source)
@@ -263,6 +309,16 @@ end)
 
 exports('GetBillHistoryByIdentifier', function(identifier, limit, offset)
     return BillingService.GetHistoryByIdentifier(identifier, limit, offset)
+end)
+
+exports('GetIssuedBillHistoryBySource', function(source, limit, offset)
+    local identifier = BillingFramework.GetIdentifier(tonumber(source))
+    if not identifier then return makeResponse(false, 'player identifier missing') end
+    return BillingService.GetIssuedHistoryByIdentifier(identifier, limit, offset)
+end)
+
+exports('GetIssuedBillHistoryByIdentifier', function(identifier, limit, offset)
+    return BillingService.GetIssuedHistoryByIdentifier(identifier, limit, offset)
 end)
 
 exports('GetBillById', function(billId)

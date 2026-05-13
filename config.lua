@@ -18,6 +18,11 @@ Config.NearbyBillTargetMax = 5 -- max entries in the list (closest first)
 Config.AllowPersonalBillByAnyone = true
 Config.AllowThirdPartyPayments = true
 
+-- When true (default), new bills also trigger an lb-phone notification (standard notification sound) if lb-phone is started on the client.
+Config.LbPhoneBillNotify = false
+-- `app` field on lb-phone notifications; use your custom app identifier so tapping opens the Billing app when installed.
+Config.LbPhoneBillAppIdentifier = 'bs_billing_phone'
+
 -- Map job name => minimum job grade required to create business bills.
 Config.BusinessBillingJobs = {
     police = 0,

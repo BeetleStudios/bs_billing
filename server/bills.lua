@@ -92,6 +92,15 @@ local function normalizeBillRow(row)
     row.updated_at = formatReadableDate(row.updated_at)
     row.paid_at = formatReadableDate(row.paid_at)
     row.cancelled_at = formatReadableDate(row.cancelled_at)
+    if row.issuer_type == 'business' and row.issuer_job and row.issuer_job ~= '' then
+        local label = BillingFramework.GetJobLabel(row.issuer_job)
+        if label and label ~= '' then
+            local snap = row.issuer_name_snapshot
+            if not snap or snap == '' or snap == row.issuer_job then
+                row.issuer_name_snapshot = label
+            end
+        end
+    end
     return row
 end
 
@@ -195,6 +204,13 @@ function BillingService.EnsureTable()
             INDEX `idx_recipient_created` (`recipient_id`, `created_at`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
     ]], {})
+    -- Help issued-history queries (safe if index already exists).
+    pcall(function()
+        query([[
+            ALTER TABLE `bs_billing_invoices`
+            ADD INDEX `idx_issuer_created` (`issuer_id`, `created_at`)
+        ]], {})
+    end)
 end
 
 function BillingService.CreateBill(data)
@@ -224,6 +240,15 @@ function BillingService.CreateBill(data)
     end
     if issuerType == 'business' and (not issuerJob or issuerJob == '') then
         return { success = false, error = 'missing business job' }
+    end
+
+    if issuerType == 'business' and issuerJob and issuerJob ~= '' then
+        local label = BillingFramework.GetJobLabel(issuerJob)
+        if label and label ~= '' then
+            if not issuerName or issuerName == '' or issuerName == 'Unknown' or issuerName == issuerJob then
+                issuerName = label
+            end
+        end
     end
 
     local id = insert([[
@@ -276,6 +301,26 @@ function BillingService.GetHistoryByIdentifier(identifier, limit, offset)
     local rows = query([[
         SELECT * FROM bs_billing_invoices
         WHERE recipient_id = ?
+        ORDER BY created_at DESC
+        LIMIT ? OFFSET ?
+    ]], { identifier, limit, offset })
+
+    return { success = true, data = normalizeBillRows(rows) }
+end
+
+function BillingService.GetIssuedHistoryByIdentifier(identifier, limit, offset)
+    if not identifier or identifier == '' then
+        return { success = false, error = 'missing identifier' }
+    end
+    limit = tonumber(limit) or (Config.HistoryPageSize or 25)
+    offset = tonumber(offset) or 0
+    if limit < 1 then limit = 1 end
+    if limit > 100 then limit = 100 end
+    if offset < 0 then offset = 0 end
+
+    local rows = query([[
+        SELECT * FROM bs_billing_invoices
+        WHERE issuer_id = ?
         ORDER BY created_at DESC
         LIMIT ? OFFSET ?
     ]], { identifier, limit, offset })

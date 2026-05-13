@@ -64,7 +64,11 @@ function BillingFramework.GetPlayer(source)
             PlayerData = {
                 source = source,
                 citizenid = xPlayer.identifier,
-                job = job and { name = job.name, grade = { level = job.grade or 0 } } or nil,
+                job = job and {
+                    name = job.name,
+                    label = job.label,
+                    grade = { level = job.grade or 0 },
+                } or nil,
                 charinfo = { firstname = first, lastname = last },
                 license = getLicense(source)
             },
