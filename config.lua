@@ -15,7 +15,9 @@ Config.HistoryPageSize = 25
 Config.NearbyBillTargetRadius = 5.0 -- meters
 Config.NearbyBillTargetMax = 5 -- max entries in the list (closest first)
 
-Config.AllowPersonalBillByAnyone = true
+--- When true, players can create personal bills. When false, only business bills (jobs listed in BusinessBillingJobs with sufficient grade).
+Config.AllowPersonalBilling = false
+
 Config.AllowThirdPartyPayments = true
 
 -- When true (default), new bills also trigger an lb-phone notification (standard notification sound) if lb-phone is started on the client.

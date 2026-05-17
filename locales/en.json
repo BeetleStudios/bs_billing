@@ -28,6 +28,7 @@
     "create_type_personal": "Personal",
     "create_type_business": "Business",
     "create_business_need_job": "You need a framework job on your character to create a business bill from this menu.",
+    "create_billing_unavailable": "You cannot create bills. Personal billing is disabled and your job cannot issue business bills.",
     "confirm_pay_title": "Pay Bill",
     "confirm_pay_desc": "Pay $%s for: %s",
     "confirm_yes": "Pay",

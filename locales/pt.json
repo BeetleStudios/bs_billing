@@ -28,6 +28,7 @@
     "create_type_personal": "Pessoal",
     "create_type_business": "Empresa",
     "create_business_need_job": "Voce precisa de um cargo no personagem para criar uma cobranca de empresa por este menu.",
+    "create_billing_unavailable": "Voce nao pode criar cobrancas. Cobranca pessoal desativada e seu cargo nao pode emitir cobrancas de empresa.",
     "confirm_pay_title": "Pagar Cobranca",
     "confirm_pay_desc": "Pagar $%s por: %s",
     "confirm_yes": "Pagar",

@@ -54,7 +54,7 @@ Edit `config.lua`:
 | `Config.MinAmount` / `Config.MaxAmount` | Bill amount bounds |
 | `Config.MaxReasonLength` | Max length for reason text |
 | `Config.HistoryPageSize` | Default page size for history queries |
-| `Config.AllowPersonalBillByAnyone` | If `false`, personal bills cannot be created from the menu by everyone |
+| `Config.AllowPersonalBilling` | If `false`, only **business** bills can be created (for jobs in `BusinessBillingJobs` with sufficient grade). Personal bills are blocked in the menu, phone app, and exports |
 | `Config.AllowThirdPartyPayments` | If `false`, only the **recipient** can pay the bill |
 | `Config.BusinessBillingJobs` | Table of **job names** (not labels) → minimum **grade** allowed to create **business** bills |
 | `Config.BusinessCommissionPercent` | Table of **job names** → commission rate **0–1** on **paid** business bills (e.g. `0.1` = 10% to issuer bank, 90% to society). Omitted jobs = no commission (100% society). If paying the issuer fails, commission goes to society |

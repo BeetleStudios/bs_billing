@@ -74,7 +74,7 @@ local function createBillFromSource(source, payload)
         local jobLabel = BillingFramework.GetJobLabel(issuerJob)
         issuerName = tostring(jobLabel or issuerJob)
     else
-        if not Config.AllowPersonalBillByAnyone then
+        if not Config.AllowPersonalBilling then
             return makeResponse(false, 'personal billing is disabled')
         end
     end
@@ -165,11 +165,15 @@ lib.callback.register('bs_billing:getContext', function(source)
     if (not jobLabel or jobLabel == '') and jobName then
         jobLabel = jobName
     end
+    local canCreatePersonal = Config.AllowPersonalBilling == true
+    local canCreateBusinessCurrentJob = job and BillingFramework.CanCreateBusinessBill(source, job.name) or false
     return makeResponse(true, {
         currentJob = jobName,
         currentJobLabel = jobLabel,
-        canCreatePersonal = Config.AllowPersonalBillByAnyone,
-        canCreateBusinessCurrentJob = job and BillingFramework.CanCreateBusinessBill(source, job.name) or false
+        canCreatePersonal = canCreatePersonal,
+        canCreateBusinessCurrentJob = canCreateBusinessCurrentJob,
+        canCreateAny = canCreatePersonal or canCreateBusinessCurrentJob,
+        allowPersonalBilling = canCreatePersonal,
     })
 end)
 
@@ -228,6 +232,10 @@ end
 -- Exports
 exports('CreateBill', function(data)
     data = data or {}
+    local issuerType = (data.issuerType == 'business') and 'business' or 'person'
+    if issuerType == 'person' and not Config.AllowPersonalBilling then
+        return makeResponse(false, 'personal billing is disabled')
+    end
     local created = BillingService.CreateBill(data)
     if created.success and data.recipientId and tostring(data.recipientId) ~= '' then
         local src = BillingFramework.GetSourceByIdentifier(data.recipientId)
@@ -237,6 +245,9 @@ exports('CreateBill', function(data)
 end)
 
 exports('CreatePlayerBill', function(targetSource, amount, reason, options)
+    if not Config.AllowPersonalBilling then
+        return makeResponse(false, 'personal billing is disabled')
+    end
     targetSource = tonumber(targetSource)
     if not targetSource then return makeResponse(false, 'invalid target source') end
 

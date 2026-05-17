@@ -28,6 +28,7 @@
     "create_type_personal": "Personal",
     "create_type_business": "Negocio",
     "create_business_need_job": "Necesitas un trabajo de personaje para crear una factura de negocio desde este menu.",
+    "create_billing_unavailable": "No puedes crear facturas. La facturacion personal esta desactivada y tu trabajo no puede emitir facturas de negocio.",
     "confirm_pay_title": "Pagar Factura",
     "confirm_pay_desc": "Pagar $%s por: %s",
     "confirm_yes": "Pagar",

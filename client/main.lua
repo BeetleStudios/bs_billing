@@ -228,7 +228,20 @@ local function openCreateDialog()
 
     local defaultTarget = targetOptions[1] and targetOptions[1].value or MANUAL_TARGET
 
-    local input = lib.inputDialog(L('create_title'), {
+    local canCreatePersonal = context.canCreatePersonal ~= false
+    local canCreateBusiness = context.canCreateBusinessCurrentJob == true
+    if not canCreatePersonal and not canCreateBusiness then
+        return notifyError(L('create_billing_unavailable'))
+    end
+
+    local issuerType = 'person'
+    if canCreatePersonal and not canCreateBusiness then
+        issuerType = 'person'
+    elseif canCreateBusiness and not canCreatePersonal then
+        issuerType = 'business'
+    end
+
+    local dialogFields = {
         {
             type = 'select',
             label = L('create_target'),
@@ -247,20 +260,28 @@ local function openCreateDialog()
         },
         { type = 'number', label = L('create_amount'), required = true, min = 1, step = 1 },
         { type = 'input', label = L('create_reason'), required = true, max = Config.MaxReasonLength or 120 },
-        {
+    }
+
+    if canCreatePersonal and canCreateBusiness then
+        dialogFields[#dialogFields + 1] = {
             type = 'select',
             label = L('create_type'),
             required = true,
+            default = issuerType,
             options = {
                 { value = 'person', label = L('create_type_personal') },
                 { value = 'business', label = L('create_type_business') }
             }
-        },
-    })
+        }
+    end
+
+    local input = lib.inputDialog(L('create_title'), dialogFields)
 
     if not input then return end
 
-    local issuerType = tostring(input[5])
+    if canCreatePersonal and canCreateBusiness then
+        issuerType = tostring(input[5])
+    end
     if issuerType == 'business' and (not context.currentJob or tostring(context.currentJob) == '') then
         return notifyError(L('create_business_need_job'))
     end
