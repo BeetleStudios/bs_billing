@@ -1,0 +1,40 @@
+.content {
+  background-color: rgba(20, 20, 26, 0.85);
+  border: solid 1px rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(4px);
+}
+
+.header {
+  background-color: transparent !important;
+  border-bottom: solid 1px rgba(255, 255, 255, 0.08);
+}
+
+.button {
+  background-color: var(--color-main);
+  color: var(--color-text);
+}
+
+.button:hover {
+  background-color: var(--color-main);
+  color: var(--color-text);
+  filter: brightness(1.05);
+}
+
+.tab {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 6px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  color: rgba(200, 200, 200, 0.9);
+}
+
+.tab:hover {
+  background-color: rgba(255, 255, 255, 0.04);
+}
+
+.tabActive {
+  background-color: rgba(255, 255, 255, 0.08);
+  color: var(--color-main);
+}

@@ -1,6 +1,6 @@
 # bs_billing - FiveM Billing/Invoice/Fine Script
 
-A simple cross-framework billing resource for FiveM. Players and jobs can issue **personal** or **business** bills; recipients see **outstanding** balances until they pay from their **bank account**. Business payments route to your society account via your banking script. The menu is **ox_lib** but you can build your own NUI if you'd like.
+A simple cross-framework billing resource for FiveM. Players and jobs can issue **personal** or **business** bills; recipients see **outstanding** balances until they pay from their **bank account**. Business payments route to your society account via your banking script. Default UI is a **React + Mantine** NUI (phone-style panel on the right); set `Config.UseBillingNui = false` for ox_lib menus only.
 
 **[Preview](https://youtu.be/2rpbGGr4uh4)**
 
@@ -34,11 +34,21 @@ Optional companion: **[bs_billing_phone](https://beetle-studios.tebex.io/package
 4. Edit `config.lua` (framework, banking, jobs, limits) — see below
 5. Restart the server or `ensure bs_billing`
 
+### NUI build (after editing `ui/src`)
+
+```bash
+cd ui
+npm install
+npm run build
+```
+
+Built assets are written to `ui/dist/` (served via `ui_page` in `fxmanifest.lua`).
+
 ## Usage
 
-- **In-game menu**: If `Config.EnableBillingCommand` is enabled, players use `/billing` (or `Config.Command`) to open the ox_lib menu: outstanding bills, history, and create bill flow
+- **In-game UI**: If `Config.UseBillingNui` is enabled (default), `/billing` opens a React + Mantine panel on the right (phone-sized). New bills show an on-screen alert; press `Config.NewBillAlertOpenKey` to open billing. Pay/create/cancel feedback uses ox_lib notifications. Set `Config.UseBillingNui = false` for ox_lib menus only
 - **Recipient**: Only the billed player can use **Pay** in the default flow unless third-party payment is enabled in config
-- **Integration**: Other resources should use **server exports** to create or manage bills; use the **client export** below if you want to open the ox_lib menu from your own UI or keybind
+- **Integration**: Other resources should use **server exports** to create or manage bills; use the **client export** `OpenMainMenu` to open billing (NUI or ox_lib depending on config)
 
 ## Configuration
 
@@ -54,6 +64,10 @@ Edit `config.lua`:
 | `Config.MinAmount` / `Config.MaxAmount` | Bill amount bounds |
 | `Config.MaxReasonLength` | Max length for reason text |
 | `Config.HistoryPageSize` | Default page size for history queries |
+| `Config.UseBillingNui` | `true` = React NUI panel; `false` = ox_lib menus |
+| `Config.BillingNuiAlert` | When `UseBillingNui` is true, show incoming-bill alert on the right (no duplicate ox_lib new-bill toast) |
+| `Config.NewBillAlertOpenKey` | FiveM key name to open billing from the alert (default `E`) |
+| `Config.NewBillAlertDismissKey` | Key to dismiss the alert (default `BACK`); set `false` to disable |
 | `Config.AllowPersonalBilling` | If `false`, only **business** bills can be created (for jobs in `BusinessBillingJobs` with sufficient grade). Personal bills are blocked in the menu, phone app, and exports |
 | `Config.AllowThirdPartyPayments` | If `false`, only the **recipient** can pay the bill |
 | `Config.BusinessBillingJobs` | Table of **job names** (not labels) → minimum **grade** allowed to create **business** bills |

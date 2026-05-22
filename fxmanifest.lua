@@ -21,11 +21,16 @@ server_scripts {
 }
 
 client_scripts {
+    'client/nui.lua',
     'client/main.lua'
 }
 
+ui_page 'ui/dist/index.html'
+
 files {
-    'locales/*.json'
+    'locales/*.json',
+    'ui/dist/index.html',
+    'ui/dist/**/*',
 }
 
 dependencies {

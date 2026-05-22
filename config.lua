@@ -20,6 +20,15 @@ Config.AllowPersonalBilling = false
 
 Config.AllowThirdPartyPayments = true
 
+--- When false, uses ox_lib menus instead.
+Config.UseBillingNui = true
+--- Show incoming-bill alert in NUI when a new bill is received (UseBillingNui must be true).
+Config.BillingNuiAlert = true
+--- FiveM key name (RegisterKeyMapping) to open billing from the new-bill alert, e.g. 'E', 'F6'.
+Config.NewBillAlertOpenKey = 'E'
+--- Key to dismiss the alert without opening; set false to disable (e.g. only open via key above).
+Config.NewBillAlertDismissKey = 'BACK'
+
 -- When true (default), new bills also trigger an lb-phone notification (standard notification sound) if lb-phone is started on the client.
 Config.LbPhoneBillNotify = false
 -- `app` field on lb-phone notifications; use your custom app identifier so tapping opens the Billing app when installed.

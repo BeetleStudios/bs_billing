@@ -372,7 +372,7 @@ local function openOutstandingMenu()
     lib.showContext('bs_billing_outstanding')
 end
 
-local function openMainMenu()
+local function openMainMenuOx()
     lib.registerContext({
         id = 'bs_billing_main',
         title = L('menu_title'),
@@ -395,11 +395,23 @@ local function openMainMenu()
     lib.showContext('bs_billing_main')
 end
 
+local function openMainMenu()
+    if Config.UseBillingNui then
+        return BillingNui.Open('outstanding')
+    end
+    return openMainMenuOx()
+end
+
 RegisterNetEvent('bs_billing:client:open', function()
     openMainMenu()
 end)
 
---- Open the ox_lib billing context menu (Outstanding / History / Create).
+RegisterNetEvent('bs_billing:client:incomingBill', function(payload)
+    if not Config.UseBillingNui then return end
+    BillingNui.ShowIncomingBill(payload)
+end)
+
+--- Open billing UI (NUI when Config.UseBillingNui, else ox_lib menu).
 exports('OpenMainMenu', openMainMenu)
 
 if Config.EnableBillingCommand ~= false then

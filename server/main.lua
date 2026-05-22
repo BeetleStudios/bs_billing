@@ -3,17 +3,40 @@ local function L(key, ...)
 end
 
 local function notify(source, key, kind, ...)
+    if key == 'notify_new_bill' and Config.UseBillingNui and Config.BillingNuiAlert ~= false then
+        return
+    end
     TriggerClientEvent('ox_lib:notify', source, {
         description = L(key, ...),
         type = kind or 'inform'
     })
 end
 
---- In-game toast + optional lb-phone push (see Config.LbPhoneBillNotify).
-local function fireRecipientNewBillAlert(targetSource, amount)
+--- In-game toast + optional NUI alert / lb-phone push.
+local function fireRecipientNewBillAlert(targetSource, billOrAmount)
     if not targetSource or targetSource < 1 then return end
-    amount = tonumber(amount) or 0
+
+    local amount = 0
+    local payload = nil
+    if type(billOrAmount) == 'table' then
+        amount = tonumber(billOrAmount.amount) or 0
+        payload = {
+            amount = amount,
+            billId = billOrAmount.id,
+            issuerName = billOrAmount.issuer_name_snapshot,
+            reason = billOrAmount.reason,
+        }
+    else
+        amount = tonumber(billOrAmount) or 0
+        payload = { amount = amount }
+    end
+
     notify(targetSource, 'notify_new_bill', 'inform', tostring(amount))
+
+    if Config.UseBillingNui and Config.BillingNuiAlert ~= false and payload then
+        TriggerClientEvent('bs_billing:client:incomingBill', targetSource, payload)
+    end
+
     if Config.LbPhoneBillNotify ~= false then
         TriggerClientEvent('bs_billing:client:newBillLbPhone', targetSource, amount)
     end
@@ -92,7 +115,7 @@ local function createBillFromSource(source, payload)
 
     if created.success then
         notify(source, 'notify_created', 'success')
-        fireRecipientNewBillAlert(targetSource, created.data.amount)
+        fireRecipientNewBillAlert(targetSource, created.data)
     end
 
     return created
@@ -239,7 +262,7 @@ exports('CreateBill', function(data)
     local created = BillingService.CreateBill(data)
     if created.success and data.recipientId and tostring(data.recipientId) ~= '' then
         local src = BillingFramework.GetSourceByIdentifier(data.recipientId)
-        fireRecipientNewBillAlert(src, created.data.amount)
+        fireRecipientNewBillAlert(src, created.data)
     end
     return created
 end)
@@ -268,7 +291,7 @@ exports('CreatePlayerBill', function(targetSource, amount, reason, options)
         reason = reason
     })
     if created.success then
-        fireRecipientNewBillAlert(targetSource, created.data.amount)
+        fireRecipientNewBillAlert(targetSource, created.data)
     end
     return created
 end)
@@ -297,7 +320,7 @@ exports('CreateBusinessBill', function(targetSource, amount, reason, jobName, op
         reason = reason
     })
     if created.success then
-        fireRecipientNewBillAlert(targetSource, created.data.amount)
+        fireRecipientNewBillAlert(targetSource, created.data)
     end
     return created
 end)
