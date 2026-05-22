@@ -57,7 +57,7 @@ Edit `config.lua`:
 | Option | Description |
 |--------|-------------|
 | `Config.Framework` | `'qbx'`, `'qb'`, or `'esx'` |
-| `Config.Banking` | Society adapter: `'renewed'`, `'qb'`, `'okok'`, `'fd'`, `'tgiann'`, `'esx_addonaccount'`, `'wasabi'` ([wasabi_banking](https://docs.wasabiscripts.com/wasabi-scripts/core-ui-series/wasabi_banking/exports)), `'tgg'` ([tgg-banking](https://www.teamsgg.dev/docs/paid-scripts/banking/exports/server-side) — society id = internal job name; `GetSocietyAccountMoney` / `AddSocietyMoney` / `RemoveSocietyMoney`) |
+| `Config.Banking` | Society adapter: `'renewed'`, `'qb'`, `'okok'`, `'fd'`, `'tgiann'`, `'esx_addonaccount'`, `'wasabi'`, `'tgg'` |
 | `Config.Command` | Chat command name (default: `'billing'`) |
 | `Config.EnableBillingCommand` | `true` / `false` — register `/billing` on server and client |
 | `Config.Account` | Player account used to pay (default: `'bank'`) |
