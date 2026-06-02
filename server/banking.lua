@@ -74,6 +74,13 @@ function BillingBanking.GetJobMoney(jobName)
         if ok and type(balance) == 'number' then
             return balance
         end
+    elseif banking == 'pscripts' and GetResourceState('p_banking') == 'started' then
+        local ok, money = pcall(function()
+            return exports['p_banking']:getAccountMoney(jobName)
+        end)
+        if ok and type(money) == 'number' then
+            return money
+        end
     end
 
     return 0
@@ -122,6 +129,11 @@ function BillingBanking.AddJobMoney(jobName, amount)
             return exports['wasabi_banking']:AddMoney('society', jobName, amount)
         end)
         return ok and result == true
+    elseif banking == 'pscripts' and GetResourceState('p_banking') == 'started' then
+        local ok, result = pcall(function()
+            return exports['p_banking']:addAccountMoney(jobName, amount)
+        end)
+        return ok and result == true
     end
 
     return false
@@ -168,6 +180,11 @@ function BillingBanking.RemoveJobMoney(jobName, amount)
     elseif banking == 'wasabi' and GetResourceState('wasabi_banking') == 'started' then
         local ok, result = pcall(function()
             return exports['wasabi_banking']:RemoveMoney('society', jobName, amount)
+        end)
+        return ok and result == true
+    elseif banking == 'pscripts' and GetResourceState('p_banking') == 'started' then
+        local ok, result = pcall(function()
+            return exports['p_banking']:removeAccountMoney(jobName, amount)
         end)
         return ok and result == true
     end

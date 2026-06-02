@@ -1,7 +1,7 @@
 Config = {}
 
 Config.Framework = 'qbx' -- 'qb', 'qbx', 'esx'
-Config.Banking = 'renewed' -- 'renewed', 'qb', 'okok', 'fd', 'tgiann', 'esx_addonaccount', 'wasabi', 'tgg'
+Config.Banking = 'renewed' -- 'renewed', 'qb', 'okok', 'fd', 'tgiann', 'esx_addonaccount', 'wasabi', 'tgg', 'pscripts'
 
 Config.Command = 'billing'
 Config.EnableBillingCommand = true

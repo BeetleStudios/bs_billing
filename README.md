@@ -11,7 +11,7 @@ A simple cross-framework billing resource for FiveM. Players and jobs can issue 
 - **Personal bills** — Optional payout to the issuer when the bill is paid (if issuer is online)
 - **Business bills** — Payment can be split: optional **commission** (per job, 0–1) to the issuing player’s bank (online or offline when the framework supports it), remainder to the **society** account; if commission cannot be credited to the issuer, it falls back to society
 - **Framework support** — Qbox, QBCore, or ESX
-- **Society banking** — Renewed-Banking, qb-banking, okokBanking, fd_banking, tgiann-bank, esx_addonaccount, wasabi_banking, tgg-banking
+- **Society banking** — Renewed-Banking, qb-banking, okokBanking, fd_banking, tgiann-bank, esx_addonaccount, wasabi_banking, tgg-banking, p_banking
 - **Exports** — Create, query, pay, cancel, and mark bills from other resources
 - **Locales** — English, Spanish, Portuguese (`locales/*.json`)
 
@@ -57,7 +57,7 @@ Edit `config.lua`:
 | Option | Description |
 |--------|-------------|
 | `Config.Framework` | `'qbx'`, `'qb'`, or `'esx'` |
-| `Config.Banking` | Society adapter: `'renewed'`, `'qb'`, `'okok'`, `'fd'`, `'tgiann'`, `'esx_addonaccount'`, `'wasabi'`, `'tgg'` |
+| `Config.Banking` | `'renewed'`, `'qb'`, `'okok'`, `'fd'`, `'tgiann'`, `'esx_addonaccount'`, `'wasabi'`, `'tgg'`,, `'pscripts'`
 | `Config.Command` | Chat command name (default: `'billing'`) |
 | `Config.EnableBillingCommand` | `true` / `false` — register `/billing` on server and client |
 | `Config.Account` | Player account used to pay (default: `'bank'`) |
