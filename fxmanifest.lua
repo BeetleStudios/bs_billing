@@ -38,4 +38,11 @@ dependencies {
     'oxmysql'
 }
 
+escrow_ignore {
+    'config.lua',
+    'locales/*.json',
+    'server/*.lua',
+    'client/*.lua'
+}
+
 lua54 'yes'
