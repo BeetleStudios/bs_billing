@@ -3,7 +3,7 @@ game 'gta5'
 
 author 'Beetle Studios'
 description 'Simple cross-framework billing system'
-version '2.0.1'
+version '2.0.2'
 
 ox_lib 'locale'
 

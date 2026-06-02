@@ -42,6 +42,29 @@ local function fireRecipientNewBillAlert(targetSource, billOrAmount)
     end
 end
 
+--- Issuer alert when someone pays their bill (ox_lib + optional lb-phone).
+local function fireIssuerBillPaidAlert(issuerSource, bill)
+    if not issuerSource or issuerSource < 1 or not bill then return end
+
+    notify(issuerSource, 'notify_bill_paid', 'success', tostring(bill.id))
+
+    if Config.LbPhoneBillNotify ~= false then
+        TriggerClientEvent('bs_billing:client:billPaidLbPhone', issuerSource, bill.amount, bill.id)
+    end
+end
+
+local function notifyBillPaidParties(payerSource, bill)
+    if payerSource and payerSource > 0 then
+        notify(payerSource, 'notify_paid', 'success')
+    end
+    if bill and bill.issuer_id then
+        local issuerSource = BillingFramework.GetSourceByIdentifier(bill.issuer_id)
+        if issuerSource then
+            fireIssuerBillPaidAlert(issuerSource, bill)
+        end
+    end
+end
+
 local function makeResponse(ok, dataOrError)
     if ok then
         return { success = true, data = dataOrError }
@@ -207,15 +230,7 @@ end)
 lib.callback.register('bs_billing:payBill', function(source, billId)
     local paid = BillingService.PayBillBySource(source, tonumber(billId))
     if paid.success then
-        notify(source, 'notify_paid', 'success')
-
-        local bill = paid.data
-        if bill and bill.issuer_id then
-            local issuerSource = BillingFramework.GetSourceByIdentifier(bill.issuer_id)
-            if issuerSource then
-                notify(issuerSource, 'notify_bill_paid', 'success', tostring(bill.id))
-            end
-        end
+        notifyBillPaidParties(source, paid.data)
     end
     return paid
 end)
@@ -360,7 +375,12 @@ exports('GetBillById', function(billId)
 end)
 
 exports('PayBill', function(source, billId)
-    return BillingService.PayBillBySource(tonumber(source), tonumber(billId))
+    local payerSource = tonumber(source)
+    local paid = BillingService.PayBillBySource(payerSource, tonumber(billId))
+    if paid.success then
+        notifyBillPaidParties(payerSource, paid.data)
+    end
+    return paid
 end)
 
 exports('CancelBill', function(billId, actorSource)
@@ -371,5 +391,12 @@ end)
 
 exports('MarkBillPaid', function(billId, metadata)
     metadata = metadata or {}
-    return BillingService.MarkBillPaid(tonumber(billId), metadata.paidById, metadata.paymentSource or Config.Account or 'bank')
+    local paid = BillingService.MarkBillPaid(tonumber(billId), metadata.paidById, metadata.paymentSource or Config.Account or 'bank')
+    if paid.success and paid.data and paid.data.issuer_id then
+        local issuerSource = BillingFramework.GetSourceByIdentifier(paid.data.issuer_id)
+        if issuerSource then
+            fireIssuerBillPaidAlert(issuerSource, paid.data)
+        end
+    end
+    return paid
 end)

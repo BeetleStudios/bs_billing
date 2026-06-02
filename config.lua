@@ -29,7 +29,7 @@ Config.NewBillAlertOpenKey = 'E'
 --- Key to dismiss the alert without opening; set false to disable (e.g. only open via key above).
 Config.NewBillAlertDismissKey = 'BACK'
 
--- When true (default), new bills also trigger an lb-phone notification (standard notification sound) if lb-phone is started on the client.
+-- When true, new bills and paid bills trigger lb-phone notifications (if lb-phone is started on the client).
 Config.LbPhoneBillNotify = false
 -- `app` field on lb-phone notifications; use your custom app identifier so tapping opens the Billing app when installed.
 Config.LbPhoneBillAppIdentifier = 'bs_billing_phone'

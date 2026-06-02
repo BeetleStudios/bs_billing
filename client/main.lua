@@ -420,14 +420,21 @@ if Config.EnableBillingCommand ~= false then
     end, false)
 end
 
-RegisterNetEvent('bs_billing:client:newBillLbPhone', function(amount)
+local function sendLbPhoneBillNotification(content)
     if GetResourceState('lb-phone') ~= 'started' then return end
-    amount = tonumber(amount) or 0
     pcall(function()
         exports['lb-phone']:SendNotification({
             app = Config.LbPhoneBillAppIdentifier or 'Billing',
             title = L('menu_title'),
-            content = L('notify_new_bill', tostring(amount)),
+            content = content,
         })
     end)
+end
+
+RegisterNetEvent('bs_billing:client:newBillLbPhone', function(amount)
+    sendLbPhoneBillNotification(L('notify_new_bill', tostring(tonumber(amount) or 0)))
+end)
+
+RegisterNetEvent('bs_billing:client:billPaidLbPhone', function(_amount, billId)
+    sendLbPhoneBillNotification(L('notify_bill_paid', tostring(billId or '?')))
 end)
