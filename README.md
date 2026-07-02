@@ -2,7 +2,11 @@
 
 A simple cross-framework billing resource for FiveM. Players and jobs can issue **personal** or **business** bills; recipients see **outstanding** balances until they pay from their **bank account**. Business payments route to your society account via your banking script. Default UI is a **React + Mantine** NUI (phone-style panel on the right); set `Config.UseBillingNui = false` for ox_lib menus only.
 
-**[Preview](https://youtu.be/2rpbGGr4uh4)**
+**[Preview](https://youtu.be/2rpbGGr4uh4)** - Video does not include 2.0 or 3.0 features and NUI
+
+<img width="318" height="639" alt="billing4" src="https://github.com/user-attachments/assets/fd0bc9f0-eb0b-48d1-9a07-e7e44b87b060" /><img width="320" height="641" alt="billing1" src="https://github.com/user-attachments/assets/227cdf2c-8915-4c70-bd2f-5be4203f3e49" /><img width="318" height="641" alt="billing2" src="https://github.com/user-attachments/assets/2471b545-9e3e-4be9-8bb5-34c92ed0df03" />
+
+
 
 ## Features
 
