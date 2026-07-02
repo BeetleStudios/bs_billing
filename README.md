@@ -5,6 +5,9 @@ A simple cross-framework billing resource for FiveM. Players and jobs can issue 
 **[Preview](https://youtu.be/2rpbGGr4uh4)** - Video does not include 2.0 or 3.0 features and NUI
 
 <img width="318" height="639" alt="billing4" src="https://github.com/user-attachments/assets/fd0bc9f0-eb0b-48d1-9a07-e7e44b87b060" /><img width="320" height="641" alt="billing1" src="https://github.com/user-attachments/assets/227cdf2c-8915-4c70-bd2f-5be4203f3e49" /><img width="318" height="641" alt="billing2" src="https://github.com/user-attachments/assets/2471b545-9e3e-4be9-8bb5-34c92ed0df03" />
+<img width="316" height="641" alt="billing3" src="https://github.com/user-attachments/assets/334734c7-057a-478e-aaee-94fe4056e91a" /><img width="318" height="639" alt="billing4" src="https://github.com/user-attachments/assets/72a8eeaa-9d02-4907-b143-b6705067babd" /><img width="331" height="176" alt="billing5" src="https://github.com/user-attachments/assets/45f87fec-7cec-46d4-8763-ae3dcd5ee457" />
+
+
 
 
 
