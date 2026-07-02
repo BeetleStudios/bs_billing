@@ -8,6 +8,8 @@ A simple cross-framework billing resource for FiveM. Players and jobs can issue 
 
 - **Outstanding bills** — Persist until paid or cancelled
 - **History** — Past bills (paid / cancelled) with pagination support via exports
+- **Management** — Managers and Owners can access ALL business bills, cancel any of them and send reminders
+- **Analytics and Leaderboard** — Managers and Owners can view oustanding and paid bills by 7 day, 4 week or 6 month trend lines AND see a leaderboard of workers based on top bill issuance
 - **Personal bills** — Optional payout to the issuer when the bill is paid (if issuer is online)
 - **Business bills** — Payment can be split: optional **commission** (per job, 0–1) to the issuing player’s bank (online or offline when the framework supports it), remainder to the **society** account; if commission cannot be credited to the issuer, it falls back to society
 - **Framework support** — Qbox, QBCore, or ESX
@@ -71,6 +73,7 @@ Edit `config.lua`:
 | `Config.AllowPersonalBilling` | If `false`, only **business** bills can be created (for jobs in `BusinessBillingJobs` with sufficient grade). Personal bills are blocked in the menu, phone app, and exports |
 | `Config.AllowThirdPartyPayments` | If `false`, only the **recipient** can pay the bill |
 | `Config.BusinessBillingJobs` | Table of **job names** (not labels) → minimum **grade** allowed to create **business** bills |
+| `Config.BusinessManagerJobs` | Table of **job names** → minimum **grade** for manager tools (all business outstanding, analytics, reminders, cancel any business bill) |
 | `Config.BusinessCommissionPercent` | Table of **job names** → commission rate **0–1** on **paid** business bills (e.g. `0.1` = 10% to issuer bank, 90% to society). Omitted jobs = no commission (100% society). If paying the issuer fails, commission goes to society |
 
 ## Exports

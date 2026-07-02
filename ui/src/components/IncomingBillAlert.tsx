@@ -10,6 +10,7 @@ export type IncomingBillPayload = {
   billId?: number;
   openKey?: string;
   dismissKey?: string | false;
+  isReminder?: boolean;
 };
 
 type Props = {
@@ -53,7 +54,9 @@ export function IncomingBillAlert({ data, onDismiss }: Props) {
         </span>
         <Group gap={8} wrap="nowrap" align="flex-start" pr={16}>
           <Text ff="Bebas Neue" fz="1.1rem" c="var(--color-main)" lts={1}>
-            {lang.incoming_bill_title || "New bill"}
+            {data.isReminder
+              ? lang.incoming_bill_reminder_title || "Bill reminder"
+              : lang.incoming_bill_title || "New bill"}
           </Text>
         </Group>
         <Text fz="sm" c="white" fw={600} mt={4}>

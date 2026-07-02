@@ -10,7 +10,7 @@ import shell from "./components/nuiShell.module.css";
 import "./App.css";
 import "@mantine/core/styles.css";
 
-type TabId = "outstanding" | "history" | "create";
+type TabId = "outstanding" | "history" | "create" | "manage";
 
 export default function App() {
   const setLang = useSetRecoilState(Lang);

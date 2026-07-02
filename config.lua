@@ -15,18 +15,18 @@ Config.HistoryPageSize = 25
 Config.NearbyBillTargetRadius = 5.0 -- meters
 Config.NearbyBillTargetMax = 5 -- max entries in the list (closest first)
 
---- When true, players can create personal bills. When false, only business bills (jobs listed in BusinessBillingJobs with sufficient grade).
+-- When true, players can create personal bills. When false, only business bills (jobs listed in BusinessBillingJobs with sufficient grade).
 Config.AllowPersonalBilling = false
 
 Config.AllowThirdPartyPayments = true
 
---- When false, uses ox_lib menus instead.
+-- When false, uses ox_lib menus instead.
 Config.UseBillingNui = true
---- Show incoming-bill alert in NUI when a new bill is received (UseBillingNui must be true).
+-- Show incoming-bill alert in NUI when a new bill is received (UseBillingNui must be true).
 Config.BillingNuiAlert = true
---- FiveM key name (RegisterKeyMapping) to open billing from the new-bill alert, e.g. 'E', 'F6'.
+-- FiveM key name (RegisterKeyMapping) to open billing from the new-bill alert, e.g. 'E', 'F6'.
 Config.NewBillAlertOpenKey = 'E'
---- Key to dismiss the alert without opening; set false to disable (e.g. only open via key above).
+-- Key to dismiss the alert without opening; set false to disable (e.g. only open via key above).
 Config.NewBillAlertDismissKey = 'BACK'
 
 -- When true, new bills and paid bills trigger lb-phone notifications (if lb-phone is started on the client).
@@ -34,12 +34,20 @@ Config.LbPhoneBillNotify = false
 -- `app` field on lb-phone notifications; use your custom app identifier so tapping opens the Billing app when installed.
 Config.LbPhoneBillAppIdentifier = 'bs_billing_phone'
 
--- Map job name => minimum job grade required to create business bills.
+-- Minimum job grade required to create business bills.
 Config.BusinessBillingJobs = {
     police = 0,
     ambulance = 0,
     mechanic = 0,
     ottos = 0
+}
+
+-- Minimum grade to access business manager tools (all outstanding, analytics, reminders).
+Config.BusinessManagerJobs = {
+    police = 2,
+    ambulance = 2,
+    mechanic = 2,
+    ottos = 2,
 }
 
 -- Map job name => commission rate (0–1) for business bills when paid.

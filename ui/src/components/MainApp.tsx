@@ -17,6 +17,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { fetchNui, isEnvBrowser } from "../hooks/useNui";
 import { useRecoilValue } from "recoil";
 import { Lang } from "../reducers/atoms";
+import { BusinessManagePanel } from "./business/BusinessManagePanel";
 import classes from "./appStyle.module.css";
 import global from "../global.module.css";
 
@@ -43,6 +44,7 @@ type BillingContext = {
   canCreateBusinessCurrentJob?: boolean;
   canCreateAny?: boolean;
   allowPersonalBilling?: boolean;
+  canManageBusiness?: boolean;
 };
 
 const MOCK_BILLS: Bill[] = [
@@ -72,13 +74,13 @@ async function nuiNotify(
 }
 
 type MainAppProps = {
-  initialTab?: "outstanding" | "history" | "create";
+  initialTab?: "outstanding" | "history" | "create" | "manage";
   onClose?: () => void;
 };
 
 export const MainApp = ({ initialTab = "outstanding", onClose }: MainAppProps) => {
   const lang = useRecoilValue(Lang);
-  const [tab, setTab] = useState<"outstanding" | "history" | "create">(initialTab);
+  const [tab, setTab] = useState<"outstanding" | "history" | "create" | "manage">(initialTab);
   const [loading, setLoading] = useState(true);
   const [outstanding, setOutstanding] = useState<Bill[]>([]);
   const [history, setHistory] = useState<Bill[]>([]);
@@ -122,12 +124,29 @@ export const MainApp = ({ initialTab = "outstanding", onClose }: MainAppProps) =
     else setHistory([]);
   }, [historyKind]);
 
+  const loadContext = useCallback(async () => {
+    if (isEnvBrowser()) {
+      setCtx({
+        currentJob: "police",
+        currentJobLabel: "LSPD",
+        canCreatePersonal: true,
+        canCreateBusinessCurrentJob: true,
+        canManageBusiness: true,
+      });
+      return;
+    }
+    const c = (await fetchNui<ApiResult<BillingContext>>("getContext")) as ApiResult<BillingContext>;
+    if (c?.success && c.data) setCtx(c.data);
+    else setCtx({});
+  }, []);
+
   const refresh = useCallback(async () => {
     setLoading(true);
+    await loadContext();
     await loadOutstanding();
     await loadHistoryRows();
     setLoading(false);
-  }, [loadOutstanding, loadHistoryRows]);
+  }, [loadContext, loadOutstanding, loadHistoryRows]);
 
   const loadCreateMeta = useCallback(async () => {
     setCreateMetaReady(false);
@@ -314,6 +333,7 @@ export const MainApp = ({ initialTab = "outstanding", onClose }: MainAppProps) =
   const canCreatePersonal = ctx?.canCreatePersonal !== false;
   const canCreateBusiness = ctx?.canCreateBusinessCurrentJob === true;
   const canCreateAny = ctx?.canCreateAny ?? (canCreatePersonal || canCreateBusiness);
+  const canManageBusiness = ctx?.canManageBusiness === true;
 
   const billTypeOptions = useMemo(() => {
     const opts: { value: string; label: string }[] = [];
@@ -338,7 +358,7 @@ export const MainApp = ({ initialTab = "outstanding", onClose }: MainAppProps) =
     id,
     label,
   }: {
-    id: "outstanding" | "history" | "create";
+    id: "outstanding" | "history" | "create" | "manage";
     label: string;
   }) => (
     <Box
@@ -352,25 +372,16 @@ export const MainApp = ({ initialTab = "outstanding", onClose }: MainAppProps) =
   return (
     <Box className={classes.app}>
       <Box className={classes.container}>
-        <Group
-          className={`${global.header} ${classes.headerRow}`}
-          justify="space-between"
-          p="xs"
-          wrap="nowrap"
-          align="flex-start"
-        >
-          <Box style={{ minWidth: 0 }}>
-            <Text ff="Bebas Neue" fz="1.2rem" lts={2} c="white" lh={1.1}>
-              {lang.app_title || "Billing"}
-            </Text>
-            <Text fz={10} c="dimmed" lineClamp={2}>
-              {lang.app_subtitle || "Invoices & fines"}
-            </Text>
-          </Box>
-          <Group gap={4} wrap="nowrap">
-            <TabBtn id="outstanding" label={lang.tab_outstanding || "Due"} />
-            <TabBtn id="history" label={lang.tab_history || "History"} />
-            <TabBtn id="create" label={lang.tab_create || "Create"} />
+        <Stack gap={6} className={`${global.header} ${classes.headerRow}`} p="xs">
+          <Box className={classes.headerTop}>
+            <Box style={{ minWidth: 0 }}>
+              <Text ff="Bebas Neue" fz="1.2rem" lts={2} c="white" lh={1.1}>
+                {lang.app_title || "Billing"}
+              </Text>
+              <Text fz={10} c="dimmed" lineClamp={2}>
+                {lang.app_subtitle || "Invoices & fines"}
+              </Text>
+            </Box>
             {onClose ? (
               <Box
                 component="button"
@@ -384,14 +395,23 @@ export const MainApp = ({ initialTab = "outstanding", onClose }: MainAppProps) =
                   fontSize: 18,
                   lineHeight: 1,
                   padding: "4px 6px",
+                  flexShrink: 0,
                 }}
                 aria-label="Close"
               >
                 ×
               </Box>
             ) : null}
+          </Box>
+          <Group gap={4} wrap="wrap" className={classes.tabNav}>
+            <TabBtn id="outstanding" label={lang.tab_outstanding || "Due"} />
+            <TabBtn id="history" label={lang.tab_history || "History"} />
+            {canManageBusiness ? (
+              <TabBtn id="manage" label={lang.tab_manage || "Manage"} />
+            ) : null}
+            <TabBtn id="create" label={lang.tab_create || "Create"} />
           </Group>
-        </Group>
+        </Stack>
 
         <Box className={classes.main}>
           {loading && tab !== "create" ? (
@@ -509,6 +529,13 @@ export const MainApp = ({ initialTab = "outstanding", onClose }: MainAppProps) =
                     </Stack>
                   </ScrollArea>
                 </>
+              )}
+
+              {tab === "manage" && canManageBusiness && (
+                <BusinessManagePanel
+                  lang={lang}
+                  notify={(title, description, type) => nuiNotify(title, description, type)}
+                />
               )}
 
               {tab === "create" && (

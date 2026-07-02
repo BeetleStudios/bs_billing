@@ -38,6 +38,8 @@
     "notify_cancelled": "Bill cancelled.",
     "notify_error": "Action failed: %s",
     "notify_new_bill": "You received a new bill for $%s.",
+    "notify_bill_reminder": "Bill reminder: $%s — %s",
+    "notify_reminder_sent": "Reminder sent to the recipient.",
     "notify_bill_paid": "Your issued bill #%s was paid.",
     "status_outstanding": "Outstanding",
     "status_paid": "Paid",

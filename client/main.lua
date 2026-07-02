@@ -438,3 +438,10 @@ end)
 RegisterNetEvent('bs_billing:client:billPaidLbPhone', function(_amount, billId)
     sendLbPhoneBillNotification(L('notify_bill_paid', tostring(billId or '?')))
 end)
+
+RegisterNetEvent('bs_billing:client:remindBillLbPhone', function(amount, reason)
+    local amt = tostring(tonumber(amount) or 0)
+    local r = reason and tostring(reason) or ''
+    local content = L('notify_bill_reminder', amt, r)
+    sendLbPhoneBillNotification(content)
+end)

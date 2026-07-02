@@ -198,6 +198,14 @@ RegisterNUICallback('getCreateTargets', function(_, cb)
     cb({ success = true, options = options, manualValue = MANUAL_VALUE })
 end)
 
+RegisterNUICallback('getLang', function(_, cb)
+    local lang = GetConvar('ox:locale', 'en')
+    if type(lang) ~= 'string' or lang == '' then
+        lang = 'en'
+    end
+    cb({ lang = lang })
+end)
+
 RegisterNUICallback('uiNotify', function(data, cb)
     lib.notify({
         title = data and data.title or locale('menu_title'),
@@ -205,4 +213,26 @@ RegisterNUICallback('uiNotify', function(data, cb)
         type = data and data.type or 'inform',
     })
     cb('ok')
+end)
+
+RegisterNUICallback('getBusinessOutstanding', function(_, cb)
+    cb(lib.callback.await('bs_billing:getBusinessOutstanding', false) or { success = false })
+end)
+
+RegisterNUICallback('getBusinessBillTrend', function(data, cb)
+    local period = data and data.period or 'day'
+    cb(lib.callback.await('bs_billing:getBusinessBillTrend', false, period) or { success = false })
+end)
+
+RegisterNUICallback('getBusinessIssuerLeaderboard', function(_, cb)
+    cb(lib.callback.await('bs_billing:getBusinessIssuerLeaderboard', false) or { success = false })
+end)
+
+RegisterNUICallback('remindBill', function(data, cb)
+    local billId = data and tonumber(data.billId)
+    if not billId then
+        cb({ success = false, error = 'invalid bill id' })
+        return
+    end
+    cb(lib.callback.await('bs_billing:remindBill', false, billId) or { success = false })
 end)

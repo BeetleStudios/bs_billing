@@ -211,6 +211,12 @@ function BillingService.EnsureTable()
             ADD INDEX `idx_issuer_created` (`issuer_id`, `created_at`)
         ]], {})
     end)
+    pcall(function()
+        query([[
+            ALTER TABLE `bs_billing_invoices`
+            ADD INDEX `idx_business_job_status` (`issuer_job`, `issuer_type`, `status`)
+        ]], {})
+    end)
 end
 
 function BillingService.CreateBill(data)
@@ -326,6 +332,240 @@ function BillingService.GetIssuedHistoryByIdentifier(identifier, limit, offset)
     ]], { identifier, limit, offset })
 
     return { success = true, data = normalizeBillRows(rows) }
+end
+
+local function parseDbEpoch(value)
+    if value == nil then return nil end
+    if type(value) == 'number' then
+        local n = math.floor(value)
+        if n > 1000000000000000000 then
+            n = math.floor(n / 1000000000)
+        elseif n > 1000000000000000 then
+            n = math.floor(n / 1000000)
+        elseif n > 1000000000000 then
+            n = math.floor(n / 1000)
+        end
+        return n > 0 and n or nil
+    end
+    if type(value) ~= 'string' then return nil end
+    local raw = value:gsub('^%s+', ''):gsub('%s+$', '')
+    if raw:match('^%d+$') then
+        return parseDbEpoch(tonumber(raw))
+    end
+    local y, m, d, hh, mm, ss = raw:match('^(%d+)%-(%d+)%-(%d+)%s+(%d+):(%d+):(%d+)$')
+    if y then
+        return os.time({
+            year = tonumber(y),
+            month = tonumber(m),
+            day = tonumber(d),
+            hour = tonumber(hh),
+            min = tonumber(mm),
+            sec = tonumber(ss),
+        })
+    end
+    return nil
+end
+
+local function startOfLocalDay(epoch)
+    local t = os.date('*t', epoch)
+    t.hour, t.min, t.sec = 0, 0, 0
+    return os.time(t)
+end
+
+local function startOfLocalWeek(epoch)
+    local t = os.date('*t', epoch)
+    local wday = t.wday
+    local daysFromMonday = (wday + 5) % 7
+    local dayStart = startOfLocalDay(epoch)
+    return dayStart - (daysFromMonday * 86400)
+end
+
+local function startOfLocalMonth(epoch)
+    local t = os.date('*t', epoch)
+    t.day, t.hour, t.min, t.sec = 1, 0, 0, 0
+    return os.time(t)
+end
+
+function BillingService.GetBusinessOutstandingByJob(jobName)
+    if not jobName or jobName == '' then
+        return { success = false, error = 'missing job name' }
+    end
+
+    local rows = query([[
+        SELECT * FROM bs_billing_invoices
+        WHERE issuer_type = 'business' AND issuer_job = ? AND status = 'outstanding'
+        ORDER BY created_at DESC
+    ]], { jobName })
+
+    return { success = true, data = normalizeBillRows(rows) }
+end
+
+function BillingService.GetBusinessBillTrend(jobName, period)
+    if not jobName or jobName == '' then
+        return { success = false, error = 'missing job name' }
+    end
+
+    period = period or 'day'
+    local bucketCount = ({ day = 7, week = 4, month = 6 })[period] or 7
+    local now = os.time()
+    local buckets = {}
+
+    for i = bucketCount - 1, 0, -1 do
+        local startTs
+        local label
+        if period == 'week' then
+            startTs = startOfLocalWeek(now) - (i * 7 * 86400)
+            label = os.date('%m/%d', startTs)
+        elseif period == 'month' then
+            local t = os.date('*t', now)
+            t.day, t.hour, t.min, t.sec = 1, 0, 0, 0
+            t.month = t.month - i
+            while t.month < 1 do
+                t.month = t.month + 12
+                t.year = t.year - 1
+            end
+            startTs = os.time(t)
+            label = os.date('%b %Y', startTs)
+        else
+            startTs = startOfLocalDay(now) - (i * 86400)
+            label = os.date('%m/%d', startTs)
+        end
+
+        local endTs
+        if period == 'week' then
+            endTs = startTs + (7 * 86400)
+        elseif period == 'month' then
+            local t = os.date('*t', startTs)
+            t.month = t.month + 1
+            if t.month > 12 then
+                t.month = 1
+                t.year = t.year + 1
+            end
+            endTs = os.time(t)
+        else
+            endTs = startTs + 86400
+        end
+
+        buckets[#buckets + 1] = {
+            label = label,
+            startTs = startTs,
+            endTs = endTs,
+            paidCount = 0,
+            paidSum = 0,
+            outstandingCount = 0,
+            outstandingSum = 0,
+        }
+    end
+
+    if #buckets == 0 then
+        return { success = true, data = { period = period, buckets = {} } }
+    end
+
+    local rangeStart = os.date('%Y-%m-%d %H:%M:%S', buckets[1].startTs)
+    local paidRows = query([[
+        SELECT paid_at, amount FROM bs_billing_invoices
+        WHERE issuer_type = 'business' AND issuer_job = ? AND status = 'paid'
+          AND paid_at IS NOT NULL AND paid_at >= ?
+    ]], { jobName, rangeStart }) or {}
+
+    local outRows = query([[
+        SELECT created_at, amount FROM bs_billing_invoices
+        WHERE issuer_type = 'business' AND issuer_job = ? AND status = 'outstanding'
+          AND created_at >= ?
+    ]], { jobName, rangeStart }) or {}
+
+    local function assignToBucket(ts, fieldCount, fieldSum, amount)
+        if not ts then return end
+        for i = 1, #buckets do
+            local b = buckets[i]
+            if ts >= b.startTs and ts < b.endTs then
+                b[fieldCount] = b[fieldCount] + 1
+                b[fieldSum] = b[fieldSum] + (tonumber(amount) or 0)
+                return
+            end
+        end
+    end
+
+    for i = 1, #paidRows do
+        local row = paidRows[i]
+        assignToBucket(parseDbEpoch(row.paid_at), 'paidCount', 'paidSum', row.amount)
+    end
+
+    for i = 1, #outRows do
+        local row = outRows[i]
+        assignToBucket(parseDbEpoch(row.created_at), 'outstandingCount', 'outstandingSum', row.amount)
+    end
+
+    local out = {}
+    for i = 1, #buckets do
+        local b = buckets[i]
+        out[i] = {
+            label = b.label,
+            paidCount = b.paidCount,
+            paidSum = b.paidSum,
+            outstandingCount = b.outstandingCount,
+            outstandingSum = b.outstandingSum,
+        }
+    end
+
+    return { success = true, data = { period = period, buckets = out } }
+end
+
+function BillingService.GetBusinessIssuerLeaderboard(jobName, workers)
+    if not jobName or jobName == '' then
+        return { success = false, error = 'missing job name' }
+    end
+    if type(workers) ~= 'table' or #workers == 0 then
+        return { success = true, data = {} }
+    end
+
+    local maxWorkers = 128
+    local n = math.min(#workers, maxWorkers)
+    local placeholders = {}
+    local params = { jobName }
+    local nameById = {}
+
+    for i = 1, n do
+        local worker = workers[i]
+        local identifier = worker and worker.identifier
+        if identifier and identifier ~= '' then
+            placeholders[#placeholders + 1] = '?'
+            params[#params + 1] = identifier
+            nameById[identifier] = (worker.name and worker.name ~= '') and worker.name or 'Unknown'
+        end
+    end
+
+    if #placeholders == 0 then
+        return { success = true, data = {} }
+    end
+
+    local sql = ([[
+        SELECT issuer_id,
+               COUNT(*) AS bill_count,
+               COALESCE(SUM(amount), 0) AS bill_sum
+        FROM bs_billing_invoices
+        WHERE issuer_type = 'business'
+          AND issuer_job = ?
+          AND issuer_id IN (%s)
+        GROUP BY issuer_id
+        ORDER BY bill_sum DESC, bill_count DESC
+        LIMIT 1000
+    ]]):format(table.concat(placeholders, ','))
+
+    local rows = query(sql, params) or {}
+    local out = {}
+    for i = 1, #rows do
+        local row = rows[i]
+        local issuerId = row.issuer_id
+        out[i] = {
+            issuerId = issuerId,
+            issuerName = nameById[issuerId] or 'Unknown',
+            billCount = tonumber(row.bill_count) or 0,
+            billSum = tonumber(row.bill_sum) or 0,
+        }
+    end
+
+    return { success = true, data = out }
 end
 
 function BillingService.CancelBill(billId, actorIdentifier)

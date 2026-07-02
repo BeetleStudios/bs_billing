@@ -38,6 +38,8 @@
     "notify_cancelled": "Factura cancelada.",
     "notify_error": "Accion fallida: %s",
     "notify_new_bill": "Recibiste una nueva factura por $%s.",
+    "notify_bill_reminder": "Recordatorio de factura: $%s — %s",
+    "notify_reminder_sent": "Recordatorio enviado al destinatario.",
     "notify_bill_paid": "Tu factura emitida #%s fue pagada.",
     "status_outstanding": "Pendiente",
     "status_paid": "Pagada",

@@ -314,6 +314,11 @@ function BillingFramework.GetSourceByIdentifier(identifier)
     return nil
 end
 
+local function getJobGrade(job)
+    if not job then return 0 end
+    return job.grade and (job.grade.level or job.grade) or 0
+end
+
 function BillingFramework.CanCreateBusinessBill(source, jobName)
     local player = BillingFramework.GetPlayer(source)
     if not player then return false end
@@ -327,8 +332,50 @@ function BillingFramework.CanCreateBusinessBill(source, jobName)
     local minGrade = Config.BusinessBillingJobs and Config.BusinessBillingJobs[targetJob]
     if minGrade == nil then return false end
 
-    local grade = job.grade and (job.grade.level or job.grade) or 0
-    return grade >= minGrade
+    return getJobGrade(job) >= minGrade
+end
+
+function BillingFramework.CanManageBusinessBills(source, jobName)
+    local player = BillingFramework.GetPlayer(source)
+    if not player then return false end
+
+    local job = BillingFramework.GetPlayerJob(player)
+    if not job or not job.name then return false end
+
+    local targetJob = jobName or job.name
+    if job.name ~= targetJob then return false end
+
+    local minGrade = Config.BusinessManagerJobs and Config.BusinessManagerJobs[targetJob]
+    if minGrade == nil then return false end
+
+    return getJobGrade(job) >= minGrade
+end
+
+function BillingFramework.GetOnlineWorkersByJob(jobName)
+    if not jobName or jobName == '' then return {} end
+
+    local workers = {}
+    for _, playerId in ipairs(GetPlayers()) do
+        local src = tonumber(playerId)
+        if src then
+            local player = BillingFramework.GetPlayer(src)
+            if player then
+                local job = BillingFramework.GetPlayerJob(player)
+                if job and job.name == jobName then
+                    local identifier = BillingFramework.GetIdentifier(player)
+                    if identifier and identifier ~= '' then
+                        workers[#workers + 1] = {
+                            source = src,
+                            identifier = identifier,
+                            name = BillingFramework.GetPlayerName(player),
+                        }
+                    end
+                end
+            end
+        end
+    end
+
+    return workers
 end
 
 function BillingFramework.GetJobLabel(jobName)

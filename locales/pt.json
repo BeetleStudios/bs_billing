@@ -38,6 +38,8 @@
     "notify_cancelled": "Cobranca cancelada.",
     "notify_error": "Acao falhou: %s",
     "notify_new_bill": "Voce recebeu uma nova cobranca de $%s.",
+    "notify_bill_reminder": "Lembrete de cobranca: $%s — %s",
+    "notify_reminder_sent": "Lembrete enviado ao destinatario.",
     "notify_bill_paid": "Sua cobranca emitida #%s foi paga.",
     "status_outstanding": "Pendente",
     "status_paid": "Paga",

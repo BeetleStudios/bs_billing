@@ -65,6 +65,41 @@ local function notifyBillPaidParties(payerSource, bill)
     end
 end
 
+--- Bill reminder to online recipient (ox_lib + optional NUI / lb-phone).
+local function fireBillReminder(targetSource, bill)
+    if not targetSource or targetSource < 1 or not bill then return false end
+
+    local amount = tonumber(bill.amount) or 0
+    notify(targetSource, 'notify_bill_reminder', 'inform', tostring(amount), bill.reason or '')
+
+    local payload = {
+        amount = amount,
+        billId = bill.id,
+        issuerName = bill.issuer_name_snapshot,
+        reason = bill.reason,
+        isReminder = true,
+    }
+
+    if Config.UseBillingNui and Config.BillingNuiAlert ~= false then
+        TriggerClientEvent('bs_billing:client:incomingBill', targetSource, payload)
+    end
+
+    if Config.LbPhoneBillNotify ~= false then
+        TriggerClientEvent('bs_billing:client:remindBillLbPhone', targetSource, amount, bill.reason or '')
+    end
+
+    return true
+end
+
+local function resolveManagerJob(source)
+    local player = BillingFramework.GetPlayer(source)
+    if not player then return nil end
+    local job = BillingFramework.GetPlayerJob(player)
+    if not job or not job.name then return nil end
+    if not BillingFramework.CanManageBusinessBills(source, job.name) then return nil end
+    return job.name
+end
+
 local function makeResponse(ok, dataOrError)
     if ok then
         return { success = true, data = dataOrError }
@@ -213,11 +248,13 @@ lib.callback.register('bs_billing:getContext', function(source)
     end
     local canCreatePersonal = Config.AllowPersonalBilling == true
     local canCreateBusinessCurrentJob = job and BillingFramework.CanCreateBusinessBill(source, job.name) or false
+    local canManageBusiness = job and BillingFramework.CanManageBusinessBills(source, job.name) or false
     return makeResponse(true, {
         currentJob = jobName,
         currentJobLabel = jobLabel,
         canCreatePersonal = canCreatePersonal,
         canCreateBusinessCurrentJob = canCreateBusinessCurrentJob,
+        canManageBusiness = canManageBusiness,
         canCreateAny = canCreatePersonal or canCreateBusinessCurrentJob,
         allowPersonalBilling = canCreatePersonal,
     })
@@ -247,7 +284,7 @@ lib.callback.register('bs_billing:cancelBill', function(source, billId)
 
     local canCancel = bill.issuer_id == identifier
     if not canCancel and bill.issuer_type == 'business' and bill.issuer_job and bill.issuer_job ~= '' then
-        canCancel = BillingFramework.CanCreateBusinessBill(source, bill.issuer_job)
+        canCancel = BillingFramework.CanManageBusinessBills(source, bill.issuer_job)
     end
     if not canCancel then
         return makeResponse(false, 'no permission to cancel this bill')
@@ -258,6 +295,65 @@ lib.callback.register('bs_billing:cancelBill', function(source, billId)
         notify(source, 'notify_cancelled', 'success')
     end
     return cancelled
+end)
+
+lib.callback.register('bs_billing:getBusinessOutstanding', function(source)
+    local jobName = resolveManagerJob(source)
+    if not jobName then
+        return makeResponse(false, 'no permission for business management')
+    end
+    return BillingService.GetBusinessOutstandingByJob(jobName)
+end)
+
+lib.callback.register('bs_billing:getBusinessBillTrend', function(source, period)
+    local jobName = resolveManagerJob(source)
+    if not jobName then
+        return makeResponse(false, 'no permission for business management')
+    end
+    if period ~= 'day' and period ~= 'week' and period ~= 'month' then
+        period = 'day'
+    end
+    return BillingService.GetBusinessBillTrend(jobName, period)
+end)
+
+lib.callback.register('bs_billing:getBusinessIssuerLeaderboard', function(source)
+    local jobName = resolveManagerJob(source)
+    if not jobName then
+        return makeResponse(false, 'no permission for business management')
+    end
+
+    local workers = BillingFramework.GetOnlineWorkersByJob(jobName)
+    return BillingService.GetBusinessIssuerLeaderboard(jobName, workers)
+end)
+
+lib.callback.register('bs_billing:remindBill', function(source, billId)
+    local jobName = resolveManagerJob(source)
+    if not jobName then
+        return makeResponse(false, 'no permission for business management')
+    end
+
+    local billResult = BillingService.GetBillById(tonumber(billId))
+    if not billResult.success then return billResult end
+    local bill = billResult.data
+
+    if bill.status ~= 'outstanding' then
+        return makeResponse(false, 'bill is not outstanding')
+    end
+    if bill.issuer_type ~= 'business' or bill.issuer_job ~= jobName then
+        return makeResponse(false, 'bill does not belong to your business')
+    end
+
+    local recipientSource = BillingFramework.GetSourceByIdentifier(bill.recipient_id)
+    if not recipientSource then
+        return makeResponse(false, 'recipient is offline')
+    end
+
+    if not fireBillReminder(recipientSource, bill) then
+        return makeResponse(false, 'failed to send reminder')
+    end
+
+    notify(source, 'notify_reminder_sent', 'success')
+    return makeResponse(true, { reminded = true })
 end)
 
 if Config.EnableBillingCommand ~= false then

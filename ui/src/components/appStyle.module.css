@@ -28,6 +28,17 @@
   flex-shrink: 0;
 }
 
+.tabNav {
+  flex-shrink: 0;
+}
+
+.headerTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+
 .main {
   flex: 1;
   min-height: 0;
