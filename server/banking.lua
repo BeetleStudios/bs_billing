@@ -99,9 +99,10 @@ function BillingBanking.AddJobMoney(jobName, amount)
     end
 
     if banking == 'renewed' and GetResourceState('Renewed-Banking') == 'started' then
-        return pcall(function()
-            exports['Renewed-Banking']:addAccountMoney(jobName, amount)
+        local ok, result = pcall(function()
+            return exports['Renewed-Banking']:addAccountMoney(jobName, amount)
         end)
+        return ok and result ~= false
     elseif banking == 'qb' and GetResourceState('qb-banking') == 'started' then
         local ok, result = pcall(function()
             return exports['qb-banking']:AddMoney(jobName, amount, 'bs_billing')
@@ -152,9 +153,10 @@ function BillingBanking.RemoveJobMoney(jobName, amount)
     end
 
     if banking == 'renewed' and GetResourceState('Renewed-Banking') == 'started' then
-        return pcall(function()
-            exports['Renewed-Banking']:removeAccountMoney(jobName, amount)
+        local ok, result = pcall(function()
+            return exports['Renewed-Banking']:removeAccountMoney(jobName, amount)
         end)
+        return ok and result ~= false
     elseif banking == 'qb' and GetResourceState('qb-banking') == 'started' then
         local ok, result = pcall(function()
             return exports['qb-banking']:RemoveMoney(jobName, amount, 'bs_billing')

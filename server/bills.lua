@@ -143,8 +143,35 @@ local function getBusinessCommissionRate(jobName)
     return r
 end
 
+local payLocks = {}
+
+local function tryAcquirePayLock(billId)
+    if payLocks[billId] then return false end
+    payLocks[billId] = true
+    return true
+end
+
+local function releasePayLock(billId)
+    payLocks[billId] = nil
+end
+
+local function reverseBusinessPayout(ledger)
+    if not ledger or not ledger.job then return end
+    if ledger.societyAmount and ledger.societyAmount > 0 then
+        BillingBanking.RemoveJobMoney(ledger.job, ledger.societyAmount)
+    end
+    if ledger.issuerCommission and ledger.issuerCommission > 0 and ledger.issuerId then
+        BillingFramework.RemoveMoneyByIdentifier(
+            ledger.issuerId,
+            Config.Account or 'bank',
+            ledger.issuerCommission,
+            'bs_billing:refund_business_commission'
+        )
+    end
+end
+
 --- Society gets (total - commission); commission goes to issuer bank by identifier (online or offline when supported), else to society.
---- Returns ok, errMessage
+--- Returns ok, errMessage, ledger (for rollback)
 local function payBusinessBillSplits(bill, total)
     local job = bill.issuer_job
     local rate = getBusinessCommissionRate(job)
@@ -153,30 +180,55 @@ local function payBusinessBillSplits(bill, total)
     if commission > total then commission = total end
     local societyAmount = total - commission
 
+    local ledger = {
+        job = job,
+        societyAmount = 0,
+        issuerCommission = 0,
+        issuerId = bill.issuer_id,
+    }
+
     if societyAmount > 0 then
         if not BillingBanking.AddJobMoney(job, societyAmount) then
-            return false, 'failed to deposit society account'
+            return false, 'failed to deposit society account', nil
         end
+        ledger.societyAmount = societyAmount
     end
 
     if commission <= 0 then
-        return true
+        return true, nil, ledger
     end
 
     if bill.issuer_id and bill.issuer_id ~= '' then
         if BillingFramework.AddMoneyByIdentifier(bill.issuer_id, Config.Account or 'bank', commission, 'bs_billing:business_commission') then
-            return true
+            ledger.issuerCommission = commission
+            return true, nil, ledger
         end
     end
 
     if BillingBanking.AddJobMoney(job, commission) then
-        return true
+        ledger.societyAmount = ledger.societyAmount + commission
+        return true, nil, ledger
     end
 
-    if societyAmount > 0 then
-        BillingBanking.RemoveJobMoney(job, societyAmount)
+    reverseBusinessPayout(ledger)
+    return false, 'failed to pay business commission', nil
+end
+
+local function rollbackFailedPayment(payer, billId, amount, ledger, personalIssuerPaid)
+    local account = Config.Account or 'bank'
+    if ledger then
+        reverseBusinessPayout(ledger)
     end
-    return false, 'failed to pay business commission'
+    if personalIssuerPaid and personalIssuerPaid.issuerId and personalIssuerPaid.amount and personalIssuerPaid.amount > 0 then
+        BillingFramework.RemoveMoneyByIdentifier(
+            personalIssuerPaid.issuerId,
+            account,
+            personalIssuerPaid.amount,
+            'bs_billing:refund_issuer_payout'
+        )
+    end
+    BillingFramework.AddMoney(payer, account, amount, 'bs_billing:refund_pay_failed')
+    BillingService.RevertBillToOutstanding(billId)
 end
 
 function BillingService.EnsureTable()
@@ -606,63 +658,96 @@ function BillingService.MarkBillPaid(billId, paidByIdentifier, paymentSource)
     return BillingService.GetBillById(billId)
 end
 
+function BillingService.RevertBillToOutstanding(billId)
+    if not billId then return false end
+    local changed = update([[
+        UPDATE bs_billing_invoices
+        SET status = 'outstanding', paid_at = NULL, paid_by_id = NULL, payment_source = NULL
+        WHERE id = ? AND status = 'paid'
+    ]], { billId })
+    return changed and changed > 0
+end
+
 function BillingService.PayBillBySource(source, billId)
+    billId = tonumber(billId)
+    if not billId then
+        return { success = false, error = 'invalid bill id' }
+    end
+
+    if not tryAcquirePayLock(billId) then
+        return { success = false, error = 'payment already in progress' }
+    end
+
+    local function finish(result)
+        releasePayLock(billId)
+        return result
+    end
+
     local payer = BillingFramework.GetPlayer(source)
     if not payer then
-        return { success = false, error = 'payer not found' }
+        return finish({ success = false, error = 'payer not found' })
     end
 
     local payerIdentifier = BillingFramework.GetIdentifier(payer)
     if not payerIdentifier then
-        return { success = false, error = 'payer identifier missing' }
+        return finish({ success = false, error = 'payer identifier missing' })
     end
 
     local billResult = BillingService.GetBillById(billId)
     if not billResult.success then
-        return billResult
+        return finish(billResult)
     end
     local bill = billResult.data
 
     if bill.status ~= 'outstanding' then
-        return { success = false, error = 'bill is not outstanding' }
+        return finish({ success = false, error = 'bill is not outstanding' })
     end
     if not Config.AllowThirdPartyPayments and bill.recipient_id ~= payerIdentifier then
-        return { success = false, error = 'bill does not belong to player' }
+        return finish({ success = false, error = 'bill does not belong to player' })
     end
 
-    local balance = BillingFramework.GetMoney(payer, Config.Account or 'bank')
+    local account = Config.Account or 'bank'
+    local balance = BillingFramework.GetMoney(payer, account)
     if balance < bill.amount then
-        return { success = false, error = 'insufficient funds' }
+        return finish({ success = false, error = 'insufficient funds' })
     end
 
-    local removed = BillingFramework.RemoveMoney(payer, Config.Account or 'bank', bill.amount, 'bs_billing:pay_bill')
+    -- Atomically claim the bill before moving money (prevents double-pay / race conditions).
+    local claimed = BillingService.MarkBillPaid(bill.id, payerIdentifier, account)
+    if not claimed.success then
+        return finish(claimed)
+    end
+    bill = claimed.data
+
+    local removed = BillingFramework.RemoveMoney(payer, account, bill.amount, 'bs_billing:pay_bill')
     if not removed then
-        return { success = false, error = 'failed to remove bank money' }
+        BillingService.RevertBillToOutstanding(bill.id)
+        return finish({ success = false, error = 'failed to remove bank money' })
     end
 
     if bill.issuer_type == 'business' then
         if not bill.issuer_job or bill.issuer_job == '' then
-            BillingFramework.AddMoney(payer, Config.Account or 'bank', bill.amount, 'bs_billing:refund_missing_job')
-            return { success = false, error = 'bill missing business account' }
+            rollbackFailedPayment(payer, bill.id, bill.amount, nil, nil)
+            return finish({ success = false, error = 'bill missing business account' })
         end
 
-        local splitOk, splitErr = payBusinessBillSplits(bill, bill.amount)
+        local splitOk, splitErr, ledger = payBusinessBillSplits(bill, bill.amount)
         if not splitOk then
-            BillingFramework.AddMoney(payer, Config.Account or 'bank', bill.amount, 'bs_billing:refund_business_payout_failed')
-            return { success = false, error = splitErr or 'failed to deposit business payout' }
+            rollbackFailedPayment(payer, bill.id, bill.amount, ledger, nil)
+            return finish({ success = false, error = splitErr or 'failed to deposit business payout' })
         end
     elseif bill.issuer_id and bill.issuer_id ~= '' then
         local issuerSource = BillingFramework.GetSourceByIdentifier(bill.issuer_id)
         if issuerSource then
-            BillingFramework.AddMoney(issuerSource, Config.Account or 'bank', bill.amount, 'bs_billing:issuer_payout')
+            if not BillingFramework.AddMoney(issuerSource, account, bill.amount, 'bs_billing:issuer_payout') then
+                rollbackFailedPayment(payer, bill.id, bill.amount, nil, {
+                    issuerId = bill.issuer_id,
+                    amount = bill.amount,
+                })
+                return finish({ success = false, error = 'failed to pay issuer' })
+            end
         end
     end
 
-    local paid = BillingService.MarkBillPaid(bill.id, payerIdentifier, Config.Account or 'bank')
-    if not paid.success then
-        BillingFramework.AddMoney(payer, Config.Account or 'bank', bill.amount, 'bs_billing:refund_mark_paid_failed')
-        return paid
-    end
-
-    return paid
+    return finish(BillingService.GetBillById(bill.id))
 end

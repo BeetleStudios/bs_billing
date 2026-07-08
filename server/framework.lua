@@ -163,7 +163,8 @@ function BillingFramework.AddMoney(playerOrSource, account, amount, reason)
 
     if FRAMEWORK == 'qb' then
         if player.Functions and player.Functions.AddMoney then
-            player.Functions.AddMoney(moneyAccount, amount, note)
+            local result = player.Functions.AddMoney(moneyAccount, amount, note)
+            if result == false then return false end
             return true
         end
         return false
@@ -202,14 +203,16 @@ function BillingFramework.AddMoneyByIdentifier(identifier, account, amount, reas
 
         local online = core.Functions.GetPlayerByCitizenId(identifier)
         if online and online.Functions and online.Functions.AddMoney then
-            online.Functions.AddMoney(moneyAccount, amount, note)
+            local result = online.Functions.AddMoney(moneyAccount, amount, note)
+            if result == false then return false end
             return true
         end
 
         if core.Functions.GetOfflinePlayerByCitizenId then
             local offline = core.Functions.GetOfflinePlayerByCitizenId(identifier)
             if offline and offline.Functions and offline.Functions.AddMoney then
-                offline.Functions.AddMoney(moneyAccount, amount, note)
+                local result = offline.Functions.AddMoney(moneyAccount, amount, note)
+                if result == false then return false end
                 if offline.Functions.Save then
                     offline.Functions.Save()
                 end
@@ -232,6 +235,60 @@ function BillingFramework.AddMoneyByIdentifier(identifier, account, amount, reas
     if GetResourceState('qbx_core') ~= 'started' then return false end
     local ok, result = pcall(function()
         return exports.qbx_core:AddMoney(identifier, moneyAccount, amount, note)
+    end)
+    return ok and result == true
+end
+
+--- Remove bank money by framework identifier (online or offline when supported).
+function BillingFramework.RemoveMoneyByIdentifier(identifier, account, amount, reason)
+    if not identifier or identifier == '' then return false end
+    amount = tonumber(amount)
+    if not amount or amount <= 0 then return false end
+
+    local moneyAccount = account or Config.Account or 'bank'
+    local note = reason or 'bs_billing'
+
+    if FRAMEWORK == 'qb' then
+        if GetResourceState('qb-core') ~= 'started' then return false end
+        local ok, core = pcall(function()
+            return exports['qb-core']:GetCoreObject()
+        end)
+        if not ok or not core or not core.Functions then return false end
+
+        local online = core.Functions.GetPlayerByCitizenId(identifier)
+        if online and online.Functions and online.Functions.RemoveMoney then
+            local result = online.Functions.RemoveMoney(moneyAccount, amount, note)
+            if result == false then return false end
+            return true
+        end
+
+        if core.Functions.GetOfflinePlayerByCitizenId then
+            local offline = core.Functions.GetOfflinePlayerByCitizenId(identifier)
+            if offline and offline.Functions and offline.Functions.RemoveMoney then
+                local result = offline.Functions.RemoveMoney(moneyAccount, amount, note)
+                if result == false then return false end
+                if offline.Functions.Save then
+                    offline.Functions.Save()
+                end
+                return true
+            end
+        end
+        return false
+    end
+
+    if FRAMEWORK == 'esx' then
+        if not ESX then return false end
+        local xPlayer = ESX.GetPlayerFromIdentifier and ESX.GetPlayerFromIdentifier(identifier)
+        if xPlayer and xPlayer.removeAccountMoney then
+            xPlayer.removeAccountMoney(moneyAccount, amount, note)
+            return true
+        end
+        return false
+    end
+
+    if GetResourceState('qbx_core') ~= 'started' then return false end
+    local ok, result = pcall(function()
+        return exports.qbx_core:RemoveMoney(identifier, moneyAccount, amount, note)
     end)
     return ok and result == true
 end
