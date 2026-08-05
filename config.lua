@@ -34,6 +34,11 @@ Config.LbPhoneBillNotify = false
 -- `app` field on lb-phone notifications; use your custom app identifier so tapping opens the Billing app when installed.
 Config.LbPhoneBillAppIdentifier = 'bs_billing_phone'
 
+-- When true, new bills and paid bills trigger lb-tablet notifications (if lb-tablet is started on the client).
+Config.LbTabletBillNotify = false
+-- `app` field on lb-tablet notifications; use your custom app identifier so tapping opens the Billing app when installed.
+Config.LbTabletBillAppIdentifier = 'bs_billing_tablet'
+
 -- Minimum job grade required to create business bills.
 Config.BusinessBillingJobs = {
     police = 0,

@@ -40,9 +40,13 @@ local function fireRecipientNewBillAlert(targetSource, billOrAmount)
     if Config.LbPhoneBillNotify ~= false then
         TriggerClientEvent('bs_billing:client:newBillLbPhone', targetSource, amount)
     end
+
+    if Config.LbTabletBillNotify ~= false then
+        TriggerClientEvent('bs_billing:client:newBillLbTablet', targetSource, amount)
+    end
 end
 
---- Issuer alert when someone pays their bill (ox_lib + optional lb-phone).
+--- Issuer alert when someone pays their bill (ox_lib + optional lb-phone / lb-tablet).
 local function fireIssuerBillPaidAlert(issuerSource, bill)
     if not issuerSource or issuerSource < 1 or not bill then return end
 
@@ -50,6 +54,10 @@ local function fireIssuerBillPaidAlert(issuerSource, bill)
 
     if Config.LbPhoneBillNotify ~= false then
         TriggerClientEvent('bs_billing:client:billPaidLbPhone', issuerSource, bill.amount, bill.id)
+    end
+
+    if Config.LbTabletBillNotify ~= false then
+        TriggerClientEvent('bs_billing:client:billPaidLbTablet', issuerSource, bill.amount, bill.id)
     end
 end
 
@@ -86,6 +94,10 @@ local function fireBillReminder(targetSource, bill)
 
     if Config.LbPhoneBillNotify ~= false then
         TriggerClientEvent('bs_billing:client:remindBillLbPhone', targetSource, amount, bill.reason or '')
+    end
+
+    if Config.LbTabletBillNotify ~= false then
+        TriggerClientEvent('bs_billing:client:remindBillLbTablet', targetSource, amount, bill.reason or '')
     end
 
     return true

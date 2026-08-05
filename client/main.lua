@@ -431,6 +431,17 @@ local function sendLbPhoneBillNotification(content)
     end)
 end
 
+local function sendLbTabletBillNotification(content)
+    if GetResourceState('lb-tablet') ~= 'started' then return end
+    pcall(function()
+        exports['lb-tablet']:SendNotification({
+            app = Config.LbTabletBillAppIdentifier or 'bs_billing_tablet',
+            title = L('menu_title'),
+            content = content,
+        })
+    end)
+end
+
 RegisterNetEvent('bs_billing:client:newBillLbPhone', function(amount)
     sendLbPhoneBillNotification(L('notify_new_bill', tostring(tonumber(amount) or 0)))
 end)
@@ -444,4 +455,19 @@ RegisterNetEvent('bs_billing:client:remindBillLbPhone', function(amount, reason)
     local r = reason and tostring(reason) or ''
     local content = L('notify_bill_reminder', amt, r)
     sendLbPhoneBillNotification(content)
+end)
+
+RegisterNetEvent('bs_billing:client:newBillLbTablet', function(amount)
+    sendLbTabletBillNotification(L('notify_new_bill', tostring(tonumber(amount) or 0)))
+end)
+
+RegisterNetEvent('bs_billing:client:billPaidLbTablet', function(_amount, billId)
+    sendLbTabletBillNotification(L('notify_bill_paid', tostring(billId or '?')))
+end)
+
+RegisterNetEvent('bs_billing:client:remindBillLbTablet', function(amount, reason)
+    local amt = tostring(tonumber(amount) or 0)
+    local r = reason and tostring(reason) or ''
+    local content = L('notify_bill_reminder', amt, r)
+    sendLbTabletBillNotification(content)
 end)
